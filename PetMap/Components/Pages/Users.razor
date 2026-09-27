@@ -1,0 +1,38 @@
+﻿@page "/users"
+
+@using Microsoft.EntityFrameworkCore
+@using PetMap.Data
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<h3>Users</h3>
+
+@if (users == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <ul>
+        @foreach (var user in users)
+        {
+            <li>
+                @user.Id /
+                @user.Name /
+                Level @user.Level
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<User>? users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        users = await db.Users
+            .AsNoTracking()
+            .ToListAsync();
+    }
+}
