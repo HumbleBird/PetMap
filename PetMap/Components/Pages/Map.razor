@@ -1,0 +1,25 @@
+﻿@page "/map"
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+
+<h3>PetMap</h3>
+
+<div id="map"></div>
+
+<style>
+    #map {
+        width: 100%;
+        height: 600px;
+    }
+</style>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("JS 호출");
+            await JS.InvokeVoidAsync("petMap.init");
+        }
+    }
+}
