@@ -1,6 +1,9 @@
 ﻿@page "/map"
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using PetMap.Data.Entities
 @inject IJSRuntime JS
+@inject PetMap.Data.ApplicationDbContext Db
 
 <h3>PetMap</h3>
 
@@ -18,8 +21,21 @@
     {
         if (firstRender)
         {
-            Console.WriteLine("JS 호출");
-            await JS.InvokeVoidAsync("petMap.init");
+            // DB에서 장소 가져오기
+            var places = await Db.Places
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.Address,
+                    p.Latitude,
+                    p.Longitude,
+                    p.Description
+                })
+                .ToListAsync();
+
+            // JS로 전달
+            await JS.InvokeVoidAsync("petMap.init", places);
         }
     }
 }
