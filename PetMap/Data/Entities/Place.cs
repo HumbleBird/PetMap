@@ -13,6 +13,7 @@ public class Place
 
     public string? Description { get; set; }
 
+    public string Category { get; set; } = string.Empty;
     // 오픈 시간
     // 마감 시간
     // 영업일
