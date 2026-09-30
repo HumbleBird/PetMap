@@ -1,0 +1,88 @@
+﻿@page "/places"
+
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using PetMap.Data.Entities
+
+@inject PetMap.Data.ApplicationDbContext Db
+@inject NavigationManager Navigation
+
+<h3>장소 관리</h3>
+
+@if (places == null)
+{
+    <p>불러오는 중...</p>
+}
+else if (places.Count == 0)
+{
+    <p>등록된 장소가 없습니다.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>장소명</th>
+                <th>카테고리</th>
+                <th>주소</th>
+                <th>관리</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var place in places)
+            {
+                <tr>
+                    <td>@place.Name</td>
+                    <td>@place.Category</td>
+                    <td>@place.Address</td>
+
+                    <td>
+                        <button class="btn btn-primary btn-sm"
+                                @onclick="() => EditPlace(place.Id)">
+                            수정
+                        </button>
+
+                        <button class="btn btn-danger btn-sm ms-1"
+                                @onclick="() => DeletePlace(place.Id)">
+                            삭제
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    private List<Place>? places;
+
+    protected override async Task OnInitializedAsync()
+    {
+        places = await Db.Places
+            .OrderBy(p => p.Id)
+            .ToListAsync();
+    }
+
+    private void EditPlace(int id)
+    {
+        Navigation.NavigateTo($"/places/edit/{id}");
+    }
+
+    private async Task DeletePlace(int id)
+    {
+        var place = await Db.Places.FindAsync(id);
+
+        if (place == null)
+            return;
+
+        Db.Places.Remove(place);
+
+        await Db.SaveChangesAsync();
+
+        places = await Db.Places
+            .OrderBy(p => p.Id)
+            .ToListAsync();
+    }
+}

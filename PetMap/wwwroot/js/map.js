@@ -26,7 +26,7 @@
 
         // 기존 Marker 제거
         this.markers.forEach(marker => {
-            marker.setMap(null);
+            marker.marker.setMap(null);
         });
 
         this.markers = [];

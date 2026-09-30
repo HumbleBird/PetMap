@@ -1,0 +1,88 @@
+﻿@page "/places/create"
+
+@using PetMap.Data.Entities
+@inject PetMap.Data.ApplicationDbContext Db
+@inject NavigationManager Navigation
+
+<h3>장소 등록</h3>
+
+<EditForm Model="place" OnValidSubmit="CreatePlace">
+
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>장소명</label>
+        <InputText class="form-control"
+                   @bind-Value="place.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label>주소</label>
+        <InputText class="form-control"
+                   @bind-Value="place.Address" />
+    </div>
+
+    <div class="mb-3">
+        <label>카테고리</label>
+
+        <InputSelect class="form-select"
+                     @bind-Value="place.Category">
+
+            <option value="">선택하세요</option>
+            <option value="동물병원">동물병원</option>
+            <option value="용품점">용품점</option>
+            <option value="공원">공원</option>
+            <option value="미용">미용</option>
+
+        </InputSelect>
+    </div>
+
+    <div class="mb-3">
+        <label>위도</label>
+        <InputNumber class="form-control"
+                     @bind-Value="place.Latitude" />
+    </div>
+
+    <div class="mb-3">
+        <label>경도</label>
+        <InputNumber class="form-control"
+                     @bind-Value="place.Longitude" />
+    </div>
+
+    <div class="mb-3">
+        <label>설명</label>
+        <InputTextArea class="form-control"
+                       @bind-Value="place.Description" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        등록
+    </button>
+
+    <button type="button"
+            class="btn btn-secondary ms-2"
+            @onclick="Cancel">
+        취소
+    </button>
+
+</EditForm>
+
+@code {
+
+    private Place place = new();
+
+    private async Task CreatePlace()
+    {
+        Db.Places.Add(place);
+
+        await Db.SaveChangesAsync();
+
+        Navigation.NavigateTo("/map");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/map");
+    }
+}
