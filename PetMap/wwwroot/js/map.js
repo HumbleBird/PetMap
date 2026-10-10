@@ -128,5 +128,69 @@
 
             }
         });
+    },
+
+    enablePlaceRegistration: function () {
+
+        console.log("지도 장소 등록 모드");
+
+        kakao.maps.event.addListener(
+            this.map,
+            "click",
+            function (mouseEvent) {
+
+                const latlng = mouseEvent.latLng;
+
+                const latitude = latlng.getLat();
+                const longitude = latlng.getLng();
+
+                console.log("선택한 위치:", latitude, longitude);
+
+                window.location.href =
+                    `/places/create?lat=${latitude}&lng=${longitude}`;
+            }
+        );
+
+        alert("장소를 등록할 위치를 지도에서 클릭하세요.");
+    },
+
+    searchPlaces: function (keyword, dotNetRef) {
+
+        if (!this.placeService) {
+            this.placeService = new kakao.maps.services.Places();
+        }
+
+        this.placeService.keywordSearch(
+            keyword,
+            function (data, status) {
+
+                if (status === kakao.maps.services.Status.OK) {
+
+                    const results = data.slice(0, 5).map(place => ({
+                        Name: place.place_name,
+                        RoadAddress: place.road_address_name,
+                        JibunAddress: place.address_name,
+                        PlaceUrl: place.place_url,
+                        BusinessHours: "",
+                        Latitude: Number(place.y),
+                        Longitude: Number(place.x)
+                    }));
+
+                    dotNetRef.invokeMethodAsync(
+                        "ReceiveSearchResults",
+                        results
+                    );
+                }
+                else {
+                    dotNetRef.invokeMethodAsync(
+                        "ReceiveSearchResults",
+                        []
+                    );
+                }
+            },
+            {
+                size: 5
+            }
+        );
     }
 };

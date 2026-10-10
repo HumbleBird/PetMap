@@ -254,11 +254,17 @@ namespace PetMap.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("BusinessHours")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("JibunAddress")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Latitude")
@@ -267,13 +273,81 @@ namespace PetMap.Migrations
                     b.Property<double>("Longitude")
                         .HasColumnType("float");
 
+                    b.Property<string>("Memo")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NaverPlaceUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nickname")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Review")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RoadAddress")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.ToTable("Places");
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminComment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BusinessHours")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Memo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NaverPlaceUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nickname")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PlaceName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Review")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlaceReports");
                 });
 
             modelBuilder.Entity("PetMap.Data.User", b =>

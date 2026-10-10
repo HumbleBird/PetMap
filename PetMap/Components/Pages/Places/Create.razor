@@ -1,6 +1,9 @@
 ﻿@page "/places/create"
+@rendermode InteractiveServer
 
 @using PetMap.Data.Entities
+@using Microsoft.AspNetCore.WebUtilities
+
 @inject PetMap.Data.ApplicationDbContext Db
 @inject NavigationManager Navigation
 
@@ -71,6 +74,25 @@
 @code {
 
     private Place place = new();
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(
+            Navigation.Uri
+        );
+
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("lat", out var lat))
+        {
+            place.Latitude = double.Parse(lat!);
+        }
+
+        if (query.TryGetValue("lng", out var lng))
+        {
+            place.Longitude = double.Parse(lng!);
+        }
+    }
 
     private async Task CreatePlace()
     {
