@@ -42,9 +42,20 @@
             );
 
             // 마커 갱신
+            // 업체가 등록한 전체 카테고리
+            const categories = this.parseCategories(place.category);
+
+            // 첫 번째 카테고리가 마커 색상을 결정
+            const primaryCategory = categories[0] ?? "기타";
+
+            // 첫 번째 카테고리의 색상으로 마커 생성
+            const color = this.getCategoryColor(primaryCategory);
+            const markerImage = this.createMarkerImage(color);
+
             const marker = new kakao.maps.Marker({
                 position: position,
-                map: this.map
+                map: this.map,
+                image: markerImage
             });
 
             // 장소 정보
@@ -102,7 +113,8 @@
 
             this.markers.push({
                 marker: marker,
-                category: place.category
+                category: place.category,
+                categories: categories
             });
         });
 
@@ -116,17 +128,11 @@
         console.log("선택한 카테고리:", category);
 
         this.markers.forEach(item => {
+            const visible =
+                category === "전체" ||
+                item.categories.includes(category);
 
-            if (category === "전체" ||
-                item.category === category) {
-
-                item.marker.setMap(this.map);
-
-            } else {
-
-                item.marker.setMap(null);
-
-            }
+            item.marker.setMap(visible ? this.map : null);
         });
     },
 
@@ -192,5 +198,69 @@
                 size: 5
             }
         );
-    }
+    },
+
+    // 카테고리 문자열을 배열로 변환
+    parseCategories: function (category) {
+        if (Array.isArray(category)) {
+            return category.map(String).map(c => c.trim()).filter(Boolean);
+        }
+
+        if (!category) return [];
+
+        // "동물병원, 용품점" 같은 문자열 처리
+        return String(category)
+            .split(/[,;|]/)
+            .map(c => c.trim())
+            .filter(Boolean);
+    },
+
+    // 카테고리별 색상 지정
+    getCategoryColor: function (category) {
+        const c = String(category ?? "").toLowerCase();
+
+        if (c.includes("병원") || c.includes("hospital")) {
+            return "#EF4444"; // 빨강
+        }
+
+        if (c.includes("용품") || c.includes("supplies")) {
+            return "#3B82F6"; // 파랑
+        }
+
+        if (c.includes("공원") || c.includes("park")) {
+            return "#22C55E"; // 초록
+        }
+
+        if (c.includes("동반") || c.includes("friendly")) {
+            return "#F59E0B"; // 주황
+        }
+
+        return "#64748B"; // 기타: 회색
+    },
+
+    // 색상에 맞는 커스텀 마커 이미지 생성
+    createMarkerImage: function (color) {
+        const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="36" height="45" viewBox="0 0 36 45">
+            <path d="M18 1 C8.6 1 1 8.6 1 18
+                     C1 29 18 44 18 44
+                     C18 44 35 29 35 18
+                     C35 8.6 27.4 1 18 1Z"
+                  fill="${color}" stroke="#FFFFFF" stroke-width="2"/>
+            <circle cx="18" cy="18" r="6" fill="#FFFFFF"/>
+        </svg>
+    `;
+
+        const src =
+            "data:image/svg+xml;charset=utf-8," +
+            encodeURIComponent(svg);
+
+        return new kakao.maps.MarkerImage(
+            src,
+            new kakao.maps.Size(36, 45),
+            { offset: new kakao.maps.Point(18, 45) }
+        );
+    },
+
 };
