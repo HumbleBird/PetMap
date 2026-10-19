@@ -1,15 +1,17 @@
-﻿@using PetMap.Data.Entities
+@using PetMap.Data.Entities
 @using PetMap.Data
 @using PetMap.Data.Utiles
 
 @inject ApplicationDbContext Db
 @inject IJSRuntime JS
 
+<!-- 제보 입력 화면은 별도 모달로 표시한다. -->
 <button class="report-button"
         @onclick="OpenReportModal">
     + 제보하기
 </button>
 
+@* 제보 작성 폼 *@
 @if (showReportModal)
 {
     <!-- 화면 전체를 어둡게 -->
@@ -25,6 +27,8 @@
 
                 <!-- 오른쪽 위 X -->
                 <button class="close-button"
+                        type="button"
+                        aria-label="닫기"
                         @onclick="ShowCheckCloseReportModal">
                     ×
                 </button>
@@ -200,7 +204,8 @@
                         이미지
                     </label>
 
-                    <InputFile OnChange="HandleImages"
+                    <InputFile @key="imageInputKey"
+                               OnChange="HandleImages"
                                multiple />
 
                     <div class="mt-2">
@@ -216,7 +221,8 @@
             <div class="modal-footer">
 
                 <button class="btn btn-secondary"
-                        @onclick="CloseReportModal">
+                        type="button"
+                        @onclick="ShowCheckCloseReportModal">
                     취소
                 </button>
 
@@ -232,400 +238,23 @@
     </div>
 }
 
+@* 닫기 확인 모달은 작성 폼 위에 겹쳐 표시한다. *@
 @if (ShowCloseReportModal)
 {
-    <!-- 화면 전체를 어둡게 -->
-    <div class="report-modal-backdrop">
+    <!-- 확인 창의 반투명 배경이 뒤쪽 제보 창도 함께 어둡게 만든다. -->
+    <div class="close-confirm-backdrop">
+        <section class="close-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="close-report-title">
+            <header class="close-confirm-header">
+                <h5 id="close-report-title">제보를 나갈까요?</h5>
+                <p>작성 중인 내용을 임시저장할까요?</p>
+            </header>
 
-        <!-- 실제 작은 창 -->
-        <div class="report-modal">
-
-            <!-- 상단 -->
-            <div class="Close-modal-header">
-                <h5>제보를 나갈까요?</h5>
-
-                <div class="close-form-description">
-                    작성 중인 내용을 임시저장할까요?
-                </div>
-                
+            <div class="close-confirm-actions">
+                <button class="continue-button" type="button" @onclick="ContinueWriting">계속 작성</button>
+                <button class="not-save-button" type="button" @onclick="NotSaveTempReport">저장 안 함</button>
+                <button class="save-button" type="button" @onclick="SaveTempReport">임시저장</button>
             </div>
-
-            <button class="continue-button"
-                    @onclick="() =>
-                            ShowCloseReportModal = false">
-                계속 작성
-            </button>
-
-            <button class="not-save-button"
-                    @onclick="NotSaveTempReport">
-                저장 안 함
-            </button>
-            
-            <button class="save-button"
-                    @onclick="SaveTempReport">
-                임시저장
-            </button>
-            
-        </div>
+        </section>
     </div>
 }
 
-
-<style>
-    /* 화면 전체 */
-    .modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-
-
-    /* 실제 제보 창 */
-    .report-modal {
-        width: 550px;
-        max-width: 90vw;
-        height: 700px;
-        max-height: 85vh;
-        background: white;
-        border-radius: 12px;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    }
-
-
-    /* 상단 */
-    .modal-header {
-        flex-shrink: 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        border-bottom: 1px solid #ddd;
-    }
-
-
-        /* 제목 */
-        .modal-header h4 {
-            margin: 0;
-        }
-
-
-    /* X 버튼 */
-    .close-button {
-        border: none;
-        background: none;
-        font-size: 28px;
-        line-height: 1;
-        cursor: pointer;
-        color: #555;
-    }
-
-        .close-button:hover {
-            color: #000;
-        }
-
-
-    /* 가운데 입력 영역 */
-    .modal-body {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-    }
-
-
-    /* 하단 버튼 */
-    .modal-footer {
-        flex-shrink: 0;
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        padding: 15px 20px;
-        border-top: 1px solid #ddd;
-        background: white;
-    }
-
-    /* 검색 결과 전체 영역 */
-    .search-results {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-top: 10px;
-    }
-
-    /* 검색 결과 하나 */
-    .search-result {
-        padding: 14px 16px;
-        background: #ffffff;
-        border: 1px solid #e1e1e1;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
-    }
-
-        /* 마우스를 올렸을 때 */
-        .search-result:hover {
-            border-color: #0d6efd;
-            background: #f8fbff;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-            transform: translateY(-1px);
-        }
-
-    /* 장소 이름 */
-    .result-name {
-        font-size: 16px;
-        font-weight: 600;
-        color: #222;
-        margin-bottom: 8px;
-    }
-
-    /* 주소 */
-    .result-address {
-        font-size: 13px;
-        color: #666;
-        line-height: 1.6;
-    }
-
-    /* 검색 결과 개수 */
-    .search-result-count {
-        margin-top: 12px;
-        margin-bottom: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        color: #555;
-    }
-
-    /* 카테고리 전체 박스 */
-    .category-box {
-        border: 1px solid #d9dee5;
-        border-radius: 10px;
-        padding: 16px;
-        background: #fff;
-    }
-
-    /* 상단 제목 + 선택 개수 */
-    .category-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 14px;
-    }
-
-        .category-header strong {
-            font-size: 16px;
-        }
-
-    .category-count {
-        font-size: 13px;
-        color: #777;
-    }
-
-    /* 체크박스 그리드 */
-    .category-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 10px 18px;
-    }
-
-    /* 개별 카테고리 */
-    .category-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-        /* 체크박스 */
-        .category-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin: 0;
-            cursor: pointer;
-            accent-color: #0d6efd;
-        }
-
-            /* 비활성화 */
-            .category-item input[type="checkbox"]:disabled {
-                cursor: not-allowed;
-            }
-
-    /* 카테고리 이름 */
-    .category-name {
-        user-select: none;
-    }
-
-    /* 최소 1개 안내 */
-    .category-warning {
-        margin-top: 12px;
-        font-size: 12px;
-        color: #dc3545;
-    }
-
-
-</style>
-
-@code {
-    private PlaceReport report = new PlaceReport(); 
-    private bool showReportModal = false;
-    private string searchKeyword = "";
-    private int imageCount = 0;
-    private string errorMessage = "";
-
-
-    private List<KakaoPlaceResult> searchResults = new();
-    public class KakaoPlaceResult
-    {
-        public string Name { get; set; } = "";
-        public string RoadAddress { get; set; } = "";
-        public string JibunAddress { get; set; } = "";
-
-        public string PlaceUrl { get; set; } = "";
-
-        public string BusinessHours { get; set; } = "";
-
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-    }
-
-    private DotNetObjectReference<Report>? reportReference;
-
-    private HashSet<string> selectedCategories = new();
-    public const int MaxSelectedCategories = 3;
-
-    public bool ShowCloseReportModal = false;
-
-    private void OpenReportModal()
-    {
-        showReportModal = true;
-    }
-
-    private void CloseReportModal()
-    {
-        showReportModal = false;
-    }
-
-    private void ShowCheckCloseReportModal()
-    {
-        ShowCloseReportModal = true;
-    }
-
-    private async Task SubmitReport()
-    {
-        var reportData = new PlaceReport
-        {
-            Nickname = report.Nickname,
-            PlaceName = report.PlaceName,
-            Category = string.Join(", ", selectedCategories),
-
-            Latitude = report.Latitude,
-            Longitude = report.Longitude,
-
-            NaverPlaceUrl = report.NaverPlaceUrl,
-            BusinessHours = report.BusinessHours,
-
-            Review = report.Review,
-            Memo = report.Memo,
-
-            Status = Status.Pending,
-        };
-
-        Db.PlaceReports.Add(reportData);
-
-        await Db.SaveChangesAsync();
-
-        CloseReportModal();
-    }
-
-    private void HandleImages(InputFileChangeEventArgs e)
-    {
-        imageCount = e.GetMultipleFiles().Count();
-
-        if (imageCount < 2)
-        {
-            errorMessage = "이미지는 최소 2장 등록해야 합니다.";
-            return;
-        }
-    }
-
-    private async Task SearchPlace()
-    {
-        if (string.IsNullOrWhiteSpace(searchKeyword))
-        {
-            searchResults.Clear();
-            return;
-        }
-
-        await JS.InvokeVoidAsync(
-            "petMap.searchPlaces",
-            searchKeyword,
-            reportReference
-        );
-    }
-
-    private void SelectPlace(KakaoPlaceResult result)
-    {
-        report.PlaceName = result.Name;
-        report.Latitude = result.Latitude;
-        report.Longitude = result.Longitude;
-        report.NaverPlaceUrl = result.PlaceUrl;
-        report.BusinessHours = result.BusinessHours;
-        searchResults.Clear();
-        searchKeyword = result.Name;
-    }
-
-    protected override void OnInitialized()
-    {
-        reportReference = DotNetObjectReference.Create(this);
-    }
-
-    [JSInvokable]
-    public async Task ReceiveSearchResults(List<KakaoPlaceResult> results)
-    {
-        searchResults = results;
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        reportReference?.Dispose();
-    }
-
-    private void ToggleCategory(string category)
-    {
-        if (selectedCategories.Contains(category))
-        {
-            selectedCategories.Remove(category);
-        }
-        else
-        {
-            if (selectedCategories.Count >= MaxSelectedCategories)
-                return;
-
-            selectedCategories.Add(category);
-        }
-
-        StateHasChanged();
-    }
-
-    private void NotSaveTempReport()
-    {
-        ShowCloseReportModal = false;
-        CloseReportModal();
-    }
-
-    private void SaveTempReport()
-    {
-        // 임시 저장 로직 구현
-
-        ShowCloseReportModal = false;
-        CloseReportModal();
-    }
-}

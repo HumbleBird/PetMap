@@ -1,17 +1,18 @@
-﻿@page "/places"
-
+@page "/places"
 @rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+
 @using Microsoft.EntityFrameworkCore
 @using PetMap.Data.Entities
-
+@using PetMap.Data.Utiles
 @inject PetMap.Data.ApplicationDbContext Db
-@inject NavigationManager Navigation
 
+<PageTitle>장소 관리</PageTitle>
 <h3>장소 관리</h3>
 
-@if (places == null)
+@if (places is null)
 {
-    <p>불러오는 중...</p>
+    <p>장소 목록을 불러오는 중...</p>
 }
 else if (places.Count == 0)
 {
@@ -28,25 +29,16 @@ else
                 <th>관리</th>
             </tr>
         </thead>
-
         <tbody>
             @foreach (var place in places)
             {
-                <tr>
+                <tr @key="place.Id">
                     <td>@place.Name</td>
                     <td>@place.Category</td>
                     <td>@place.Address</td>
-
                     <td>
-                        <button class="btn btn-primary btn-sm"
-                                @onclick="() => EditPlace(place.Id)">
-                            수정
-                        </button>
-
-                        <button class="btn btn-danger btn-sm ms-1"
-                                @onclick="() => DeletePlace(place.Id)">
-                            삭제
-                        </button>
+                        <button class="btn btn-primary btn-sm" @onclick="() => OpenEditModal(place)">수정</button>
+                        <button class="btn btn-danger btn-sm ms-1" @onclick="() => DeletePlace(place.Id)">삭제</button>
                     </td>
                 </tr>
             }
@@ -54,35 +46,358 @@ else
     </table>
 }
 
-@code {
+@if (editingPlace is not null)
+{
+    <!-- 편집 사본을 모달에 바인딩해 취소 시 DB 목록의 값은 바뀌지 않게 한다. -->
+    <div class="place-modal-backdrop" @onclick="CloseEditModal">
+        <section class="place-edit-modal" role="dialog" aria-modal="true" aria-labelledby="place-edit-title"
+                 @onclick:stopPropagation="true">
+            <header class="place-edit-header">
+                <h4 id="place-edit-title">장소 수정</h4>
+                <button type="button" class="place-modal-close" aria-label="닫기" @onclick="CloseEditModal">×</button>
+            </header>
 
+            <EditForm Model="editingPlace" OnValidSubmit="SaveEdit">
+                <DataAnnotationsValidator />
+                <div class="place-edit-body">
+                    @if (!string.IsNullOrWhiteSpace(validationMessage))
+                    {
+                        <div class="alert alert-warning">@validationMessage</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">장소명</label>
+                        <InputText class="form-control" @bind-Value="editingPlace.Name" />
+                    </div>
+
+                    <fieldset class="mb-3">
+                        <legend class="form-label">카테고리 (최대 3개)</legend>
+                        <nav class="category-tabs" aria-label="카테고리 그룹">
+                            @foreach (var group in categoryGroups)
+                            {
+                                <button type="button"
+                                        class="@(activeCategoryGroupKey == group.Key ? "active" : "")"
+                                        aria-pressed="@(activeCategoryGroupKey == group.Key)"
+                                        @onclick="() => SelectCategoryGroup(group.Key)">
+                                    @group.Title
+                                </button>
+                            }
+                        </nav>
+                        <div class="category-selection-summary">
+                            선택됨: @selectedCategories.Count/3
+                        </div>
+                        <div class="category-grid">
+                            @foreach (var category in GetActiveCategories())
+                            {
+                                var name = category.ToString();
+                                var isSelected = selectedCategories.Contains(name);
+                                var isDisabled = !isSelected && selectedCategories.Count >= 3;
+                                <label class="category-item">
+                                    <input type="checkbox" checked="@isSelected" disabled="@isDisabled"
+                                           @onchange="() => ToggleCategory(name)" />
+                                    <span>@GetCategoryLabel(category)</span>
+                                </label>
+                            }
+                        </div>
+                    </fieldset>
+
+                    <div class="mb-3">
+                        <label class="form-label">식당 세부 분류</label>
+                        <InputSelect class="form-select" @bind-Value="editingPlace.RestaurantType">
+                            <option value="">선택 안 함</option>
+                            <option value="한식">한식</option>
+                            <option value="중식">중식</option>
+                            <option value="일식">일식</option>
+                            <option value="양식">양식</option>
+                            <option value="분식">분식</option>
+                            <option value="주점">주점</option>
+                            <option value="기타">기타</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">전화번호</label>
+                        <InputText class="form-control" @bind-Value="editingPlace.Phone" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">주소</label>
+                        <InputText class="form-control" @bind-Value="editingPlace.Address" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">도로명 주소</label>
+                        <InputText class="form-control" @bind-Value="editingPlace.RoadAddress" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">지번 주소</label>
+                        <InputText class="form-control" @bind-Value="editingPlace.JibunAddress" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">위도</label>
+                            <InputNumber class="form-control" @bind-Value="editingPlace.Latitude" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">경도</label>
+                            <InputNumber class="form-control" @bind-Value="editingPlace.Longitude" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">영업시간</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="editingPlace.BusinessHours" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">반려동물 출입 기준</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="editingPlace.PetEntryCriteria" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">장소 설명</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="editingPlace.Description" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">네이버 장소 링크</label>
+                        <InputText class="form-control" @bind-Value="editingPlace.NaverPlaceUrl" />
+                    </div>
+
+                    <details class="mb-3">
+                        <summary>제보 기록</summary>
+                        <div class="mt-3">
+                            <label class="form-label">제보자 닉네임</label>
+                            <InputText class="form-control mb-3" @bind-Value="editingPlace.Nickname" />
+                            <label class="form-label">리뷰</label>
+                            <InputTextArea class="form-control mb-3" rows="3" @bind-Value="editingPlace.Review" />
+                            <label class="form-label">메모</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="editingPlace.Memo" />
+                        </div>
+                    </details>
+                </div>
+
+                <footer class="place-edit-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </footer>
+            </EditForm>
+        </section>
+    </div>
+}
+
+<style>
+    .place-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, .52);
+    }
+
+    .place-edit-modal {
+        display: flex;
+        flex-direction: column;
+        width: min(680px, 96vw);
+        max-height: 90vh;
+        overflow: hidden;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, .28);
+    }
+
+    /* 폼도 세로 flex 컨테이너로 만들어 입력 본문만 스크롤되게 한다. */
+    .place-edit-modal > form {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .place-edit-header, .place-edit-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        padding: 14px 20px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .place-edit-header h4 { margin: 0; }
+    .place-modal-close { border: 0; background: transparent; font-size: 28px; line-height: 1; }
+    .place-edit-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 20px;
+    }
+    .place-edit-footer { justify-content: flex-end; gap: 8px; border-top: 1px solid #e5e7eb; border-bottom: 0; }
+    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+    .category-item { display: flex; align-items: center; gap: 8px; }
+
+    .category-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+    .category-tabs button { padding: 9px 5px; border: 0; border-radius: 8px; background: #f2f4f7; color: #667085; }
+    .category-tabs button.active { background: #263c66; color: #fff; font-weight: 600; }
+    .category-selection-summary { padding: 10px 2px; color: #667085; font-size: 13px; }
+</style>
+
+@code {
     private List<Place>? places;
+    private Place? editingPlace;
+    private HashSet<string> selectedCategories = new();
+    private string? validationMessage;
+    private string activeCategoryGroupKey = "Leisure";
+
+    // 같은 그룹과 카테고리를 지도 필터와 공유한다.
+    private readonly List<CategoryGroup> categoryGroups =
+    [
+        new("Leisure", "여가 & 문화",
+        [
+            AnimalCategory.DogCafe,
+            AnimalCategory.BakeryCafe,
+            AnimalCategory.Restaurant,
+            AnimalCategory.Accommodation,
+            AnimalCategory.Studio,
+            AnimalCategory.ShoppingAndCulture,
+            AnimalCategory.Park
+        ]),
+        new("Care", "케어 & 돌봄",
+        [
+            AnimalCategory.Hospital,
+            AnimalCategory.GroomingShop,
+            AnimalCategory.PetSupplyShop,
+            AnimalCategory.DayCare,
+            AnimalCategory.PetHotel,
+            AnimalCategory.TrainingCenter,
+            AnimalCategory.SelfWash
+        ]),
+        new("Service", "전문 서비스",
+        [
+            AnimalCategory.PetTaxi,
+            AnimalCategory.FuneralService
+        ])
+    ];
+
+    private sealed record CategoryGroup(string Key, string Title, AnimalCategory[] Categories);
 
     protected override async Task OnInitializedAsync()
     {
-        places = await Db.Places
-            .OrderBy(p => p.Id)
-            .ToListAsync();
+        places = await Db.Places.OrderBy(place => place.Id).ToListAsync();
     }
 
-    private void EditPlace(int id)
+    // 원본 DB 엔티티를 건드리지 않도록 새 편집 사본을 만들어 모달에 연다.
+    private void OpenEditModal(Place place)
     {
-        Navigation.NavigateTo($"/places/edit/{id}");
+        editingPlace = CopyPlace(place);
+        selectedCategories = place.Category
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(NormalizeCategory)
+            .ToHashSet(StringComparer.Ordinal);
+        activeCategoryGroupKey = "Leisure";
+        validationMessage = null;
+    }
+
+    private static Place CopyPlace(Place place) => new()
+    {
+        Id = place.Id,
+        Name = place.Name,
+        Address = place.Address,
+        RoadAddress = place.RoadAddress,
+        JibunAddress = place.JibunAddress,
+        Latitude = place.Latitude,
+        Longitude = place.Longitude,
+        Category = place.Category,
+        RestaurantType = place.RestaurantType,
+        Phone = place.Phone,
+        PetEntryCriteria = place.PetEntryCriteria,
+        Description = place.Description,
+        NaverPlaceUrl = place.NaverPlaceUrl,
+        BusinessHours = place.BusinessHours,
+        Nickname = place.Nickname,
+        Review = place.Review,
+        Memo = place.Memo
+    };
+
+    // 예전 화면에서 저장한 한글 카테고리 값도 새 enum과 연결한다.
+    private static string NormalizeCategory(string category) => category switch
+    {
+        "동물병원" => nameof(AnimalCategory.Hospital),
+        "용품점" => nameof(AnimalCategory.PetSupplyShop),
+        "공원" => nameof(AnimalCategory.Park),
+        "미용" => nameof(AnimalCategory.GroomingShop),
+        _ => category
+    };
+
+    private void SelectCategoryGroup(string key) => activeCategoryGroupKey = key;
+
+    private IEnumerable<AnimalCategory> GetActiveCategories() => categoryGroups
+        .First(group => group.Key == activeCategoryGroupKey)
+        .Categories;
+
+    private static string GetCategoryLabel(AnimalCategory category) => category switch
+    {
+        AnimalCategory.DogCafe => "애견 전용 카페 / 운동장",
+        AnimalCategory.BakeryCafe => "애견 동반 카페 / 베이커리",
+        AnimalCategory.Restaurant => "애견 동반 식당",
+        AnimalCategory.Accommodation => "애견 동반 숙소",
+        AnimalCategory.Studio => "사진관 / 스튜디오",
+        AnimalCategory.ShoppingAndCulture => "쇼핑 / 문화",
+        AnimalCategory.Park => "공원",
+        AnimalCategory.Hospital => "동물병원",
+        AnimalCategory.GroomingShop => "애견 미용실",
+        AnimalCategory.PetSupplyShop => "애견 용품점",
+        AnimalCategory.DayCare => "유치원 / 데이케어",
+        AnimalCategory.PetHotel => "애견 호텔",
+        AnimalCategory.TrainingCenter => "훈련소 / 행동 교정",
+        AnimalCategory.SelfWash => "셀프 목욕탕",
+        AnimalCategory.PetTaxi => "펫택시",
+        AnimalCategory.FuneralService => "장례 / 추모 시설",
+        _ => category.ToString()
+    };
+
+    private void ToggleCategory(string category)
+    {
+        validationMessage = null;
+        if (!selectedCategories.Remove(category) && selectedCategories.Count < 3)
+            selectedCategories.Add(category);
+    }
+
+    // 폼에서 저장을 누를 때만 원본 엔티티를 갱신하고 DB에 반영한다.
+    private async Task SaveEdit()
+    {
+        if (editingPlace is null) return;
+        if (selectedCategories.Count == 0)
+        {
+            validationMessage = "카테고리를 하나 이상 선택해주세요.";
+            return;
+        }
+
+        var original = await Db.Places.FindAsync(editingPlace.Id);
+        if (original is null) return;
+
+        var categoryOrder = Enum.GetNames<AnimalCategory>();
+        editingPlace.Category = string.Join(", ", categoryOrder.Where(selectedCategories.Contains));
+        Db.Entry(original).CurrentValues.SetValues(editingPlace);
+        await Db.SaveChangesAsync();
+
+        places = await Db.Places.OrderBy(place => place.Id).ToListAsync();
+        CloseEditModal();
+    }
+
+    private void CloseEditModal()
+    {
+        editingPlace = null;
+        validationMessage = null;
     }
 
     private async Task DeletePlace(int id)
     {
         var place = await Db.Places.FindAsync(id);
-
-        if (place == null)
-            return;
+        if (place is null) return;
 
         Db.Places.Remove(place);
-
         await Db.SaveChangesAsync();
-
-        places = await Db.Places
-            .OrderBy(p => p.Id)
-            .ToListAsync();
+        places = await Db.Places.OrderBy(item => item.Id).ToListAsync();
     }
 }

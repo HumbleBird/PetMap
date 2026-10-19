@@ -1,112 +1,179 @@
-﻿@page "/places/edit/{Id:int}"
-
+@page "/places/edit/{Id:int}"
 @rendermode InteractiveServer
-@using PetMap.Data.Entities
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
 
+@using PetMap.Data.Entities
+@using PetMap.Data.Utiles
 @inject PetMap.Data.ApplicationDbContext Db
 @inject NavigationManager Navigation
 
+<PageTitle>장소 수정</PageTitle>
 <h3>장소 수정</h3>
 
-@if (place == null)
+@if (place is null)
 {
-    <p>불러오는 중...</p>
+    <p>장소 정보를 불러오는 중...</p>
 }
 else
 {
     <EditForm Model="place" OnValidSubmit="UpdatePlace">
-
         <DataAnnotationsValidator />
         <ValidationSummary />
 
-        <div class="mb-3">
-            <label>장소명</label>
+        @if (!string.IsNullOrWhiteSpace(validationMessage))
+        {
+            <div class="alert alert-warning">@validationMessage</div>
+        }
 
-            <InputText class="form-control"
-                       @bind-Value="place.Name" />
+        <div class="mb-3">
+            <label class="form-label">장소명</label>
+            <InputText class="form-control" @bind-Value="place.Name" />
         </div>
 
+        <fieldset class="mb-3">
+            <legend class="form-label">카테고리 (최대 3개)</legend>
+            <div class="category-grid">
+                @foreach (var category in Enum.GetValues<AnimalCategory>())
+                {
+                    var name = category.ToString();
+                    var isSelected = selectedCategories.Contains(name);
+                    var isDisabled = !isSelected && selectedCategories.Count >= 3;
+                    <label class="category-item">
+                        <input type="checkbox" checked="@isSelected" disabled="@isDisabled"
+                               @onchange="() => ToggleCategory(name)" />
+                        <span>@name</span>
+                    </label>
+                }
+            </div>
+        </fieldset>
+
         <div class="mb-3">
-            <label>주소</label>
-
-            <InputText class="form-control"
-                       @bind-Value="place.Address" />
-        </div>
-
-        <div class="mb-3">
-            <label>카테고리</label>
-
-            <InputSelect class="form-select"
-                         @bind-Value="place.Category">
-
-                <option value="">선택하세요</option>
-                <option value="동물병원">동물병원</option>
-                <option value="용품점">용품점</option>
-                <option value="공원">공원</option>
-                <option value="미용">미용</option>
-
+            <label class="form-label">식당 세부 분류</label>
+            <InputSelect class="form-select" @bind-Value="place.RestaurantType">
+                <option value="">선택 안 함</option>
+                <option value="한식">한식</option>
+                <option value="중식">중식</option>
+                <option value="일식">일식</option>
+                <option value="양식">양식</option>
+                <option value="분식">분식</option>
+                <option value="주점">주점</option>
+                <option value="기타">기타</option>
             </InputSelect>
         </div>
 
         <div class="mb-3">
-            <label>위도</label>
+            <label class="form-label">전화번호</label>
+            <InputText class="form-control" @bind-Value="place.Phone" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">주소</label>
+            <InputText class="form-control" @bind-Value="place.Address" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">도로명 주소</label>
+            <InputText class="form-control" @bind-Value="place.RoadAddress" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">지번 주소</label>
+            <InputText class="form-control" @bind-Value="place.JibunAddress" />
+        </div>
 
-            <InputNumber class="form-control"
-                         @bind-Value="place.Latitude" />
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">위도</label>
+                <InputNumber class="form-control" @bind-Value="place.Latitude" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">경도</label>
+                <InputNumber class="form-control" @bind-Value="place.Longitude" />
+            </div>
         </div>
 
         <div class="mb-3">
-            <label>경도</label>
-
-            <InputNumber class="form-control"
-                         @bind-Value="place.Longitude" />
+            <label class="form-label">영업시간</label>
+            <InputTextArea class="form-control" rows="3" @bind-Value="place.BusinessHours" />
         </div>
-
         <div class="mb-3">
-            <label>설명</label>
-
-            <InputTextArea class="form-control"
-                           @bind-Value="place.Description" />
+            <label class="form-label">반려동물 출입 기준</label>
+            <InputTextArea class="form-control" rows="3" @bind-Value="place.PetEntryCriteria" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">장소 설명</label>
+            <InputTextArea class="form-control" rows="4" @bind-Value="place.Description" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">네이버 장소 링크</label>
+            <InputText class="form-control" @bind-Value="place.NaverPlaceUrl" />
         </div>
 
-        <button type="submit"
-                class="btn btn-primary">
-            저장
-        </button>
+        <details class="mb-3">
+            <summary>제보 기록 정보</summary>
+            <div class="mt-3">
+                <label class="form-label">제보자 닉네임</label>
+                <InputText class="form-control mb-3" @bind-Value="place.Nickname" />
+                <label class="form-label">리뷰</label>
+                <InputTextArea class="form-control mb-3" rows="3" @bind-Value="place.Review" />
+                <label class="form-label">메모</label>
+                <InputTextArea class="form-control" rows="3" @bind-Value="place.Memo" />
+            </div>
+        </details>
 
-        <button type="button"
-                class="btn btn-secondary ms-2"
-                @onclick="Cancel">
-            취소
-        </button>
-
+        <button type="submit" class="btn btn-primary">저장</button>
+        <button type="button" class="btn btn-secondary ms-2" @onclick="Cancel">취소</button>
     </EditForm>
 }
 
 @code {
-
-    [Parameter]
-    public int Id { get; set; }
-
+    [Parameter] public int Id { get; set; }
     private Place? place;
+    private HashSet<string> selectedCategories = new();
+    private string? validationMessage;
 
+    // 기존 CSV 카테고리를 체크박스 상태로 읽어온다.
     protected override async Task OnInitializedAsync()
     {
         place = await Db.Places.FindAsync(Id);
+        if (place is null) return;
+
+        selectedCategories = place.Category
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(NormalizeCategory)
+            .ToHashSet(StringComparer.Ordinal);
     }
 
+    // 구형 편집 화면에서 저장한 한글 카테고리를 새 enum 값으로 변환한다.
+    private static string NormalizeCategory(string category) => category switch
+    {
+        "동물병원" => nameof(AnimalCategory.Hospital),
+        "용품점" => nameof(AnimalCategory.PetSupplyShop),
+        "공원" => nameof(AnimalCategory.Park),
+        "미용" => nameof(AnimalCategory.GroomingShop),
+        _ => category
+    };
+
+    // 선택 카테고리는 최대 3개까지 유지한다.
+    private void ToggleCategory(string category)
+    {
+        validationMessage = null;
+        if (!selectedCategories.Remove(category) && selectedCategories.Count < 3)
+            selectedCategories.Add(category);
+    }
+
+    // 검증 후 편집된 장소 정보를 DB에 저장한다.
     private async Task UpdatePlace()
     {
-        if (place == null)
+        if (place is null) return;
+        if (selectedCategories.Count == 0)
+        {
+            validationMessage = "카테고리를 하나 이상 선택해주세요.";
             return;
+        }
 
+        var categoryOrder = Enum.GetNames<AnimalCategory>();
+        place.Category = string.Join(", ", categoryOrder.Where(selectedCategories.Contains));
         await Db.SaveChangesAsync();
-
         Navigation.NavigateTo("/places");
     }
 
-    private void Cancel()
-    {
-        Navigation.NavigateTo("/places");
-    }
+    private void Cancel() => Navigation.NavigateTo("/places");
 }

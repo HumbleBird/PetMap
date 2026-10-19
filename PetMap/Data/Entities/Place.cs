@@ -18,6 +18,13 @@ public class Place
 
     public string Category { get; set; } = string.Empty;
 
+    // 식당의 구체적인 종류(예: 한식, 중식, 주점)
+    public string? RestaurantType { get; set; }
+
+    public string? Phone { get; set; }
+
+    public string? PetEntryCriteria { get; set; }
+
     public string? Description { get; set; }
 
     public string? NaverPlaceUrl { get; set; }
