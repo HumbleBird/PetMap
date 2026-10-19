@@ -7,6 +7,10 @@ import {
 
 const THUMBNAIL_LEVEL = 4;
 
+// 현재 지도 인스턴스의 상태
+let currentMap = null;
+let placeItems = [];
+let thumbnailsVisible = false;
 
 export async function initMap(places, options = {}) {
     const appKey = options.appKey;
@@ -28,19 +32,20 @@ export async function initMap(places, options = {}) {
         level: options.level ?? 5
     });
 
-    const placeItems = [];
 
-    places.forEach(p => {
+    currentMap = map;
+    placeItems = [];
+    thumbnailsVisible = false;
+
+    for (const p of places ?? []) {
         const position = new kakao.maps.LatLng(
             p.latitude,
             p.longitude
         );
 
-        // DB에서 받은 카테고리
-        const category = p.category;
 
         // 카테고리에 맞는 색상 선택
-        const color = getMarkerColor(category);
+        const color = getMarkerColor(p.category);
 
         // 해당 색상의 핀 이미지 생성
         const markerImage = markerImageByColor(kakao, color);
@@ -96,18 +101,25 @@ export async function initMap(places, options = {}) {
             });
         }
 
-        placeItems.push({ marker, overlay });
-    });
+        // 장소 하나의 마커, 썸네일, 카테고리를 함께 저장
+        placeItems.push({
+            marker,
+            overlay,
+            category: p.category,
+            visible: true
+        });
+    };
 
     // 3. 확대 수준에 따라 썸네일 표시 여부 변경
     function updateThumbnails() {
-        // 카카오맵은 level 숫자가 작을수록 확대된 상태
         const shouldShow = map.getLevel() <= THUMBNAIL_LEVEL;
 
-        placeItems.forEach(({ overlay }) => {
-            if (!overlay) return;
+        placeItems.forEach(item => {
+            if (!item.overlay) return;
 
-            overlay.setMap(shouldShow ? map : null);
+            item.overlay.setMap(
+                shouldShow && item.visible ? map : null
+            );
         });
     }
 
@@ -121,4 +133,41 @@ export async function initMap(places, options = {}) {
     updateThumbnails();
 
     return { map };
+}
+
+/**
+ * 선택한 카테고리에 따라 지도 마커와 썸네일을 필터링한다.
+ *
+ * categories: ['DogCafe', 'Hospital', ...]
+ * showAll: true이면 모든 장소를 표시한다.
+ */
+export function filterCategories(
+    categories = [],
+    showAll = false
+) {
+    if (!currentMap) {
+        console.warn('지도가 초기화되지 않았습니다.');
+        return;
+    }
+
+    const selectedCategories = new Set(categories);
+
+    placeItems.forEach(item => {
+        item.visible =
+            showAll ||
+            selectedCategories.has(item.category);
+
+        item.marker.setMap(
+            item.visible ? currentMap : null
+        );
+
+        if (item.overlay) {
+            const showThumbnails =
+                currentMap.getLevel() <= THUMBNAIL_LEVEL;
+
+            item.overlay.setMap(
+                item.visible && showThumbnails ? currentMap : null
+            );
+        }
+    });
 }

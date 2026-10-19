@@ -27,7 +27,7 @@ const categoryColorMap = {
 
 // 카테고리에 맞는 색상 반환
 export function getMarkerColor(category) {
-    return categoryColorMap[category] ?? '#888888';
+    return categoryColorMap[category] ?? '#7F8C8D';
 }
 
 // 색상에 맞는 카카오맵 마커 이미지 생성

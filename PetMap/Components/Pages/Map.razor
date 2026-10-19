@@ -1,27 +1,105 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 
-@using Microsoft.EntityFrameworkCore
-@using PetMap.Components.Pages.Places
-@using PetMap.Components.Pages.Main
 @using PetMap.Data.Utiles
+@using PetMap.Components.Pages.Models
+@using Microsoft.EntityFrameworkCore
+@using PetMap.Components.Pages.Main
 
 @inject IJSRuntime JS
+
 @inject PetMap.Data.ApplicationDbContext Db
 
 <h3>PetMap</h3>
 
 <Report />
 
-<div style="margin-bottom: 15px;">
-    @foreach (var category in Enum.GetValues(typeof(AnimalCategory)).Cast<AnimalCategory>())
-    {
-        <button @onclick='() => FilterCategory(category.ToString())'>
-            @category
-        </button>
-    }
-
+<div class="map-filter-toolbar">
+    <button type="button"
+            class="filter-open-button"
+            @onclick="OpenFilter">
+        <span aria-hidden="true">☷</span>
+        <span>카테고리 필터</span>
+        <span class="filter-count">@GetFilterButtonText()</span>
+    </button>
 </div>
+
+@if (isFilterModalOpen)
+{
+    <div class="filter-backdrop" @onclick="CancelFilter">
+        <section class="filter-modal"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="filter-title"
+                 @onclick:stopPropagation="true">
+
+            <header class="filter-modal-header">
+                <div>
+                    <h3 id="filter-title">장소 필터</h3>
+                    <p>지도에 표시할 장소 유형을 선택하세요.</p>
+                </div>
+
+                <button type="button"
+                        class="filter-close"
+                        aria-label="닫기"
+                        @onclick="CancelFilter">
+                    ×
+                </button>
+            </header>
+
+            <nav class="filter-tabs" aria-label="카테고리 그룹">
+                @foreach (var group in categoryGroups)
+                {
+                    <button type="button"
+                            @key="group.Key"
+                            class="@(activeCategoryGroupKey == group.Key ? "active" : "")"
+                            aria-pressed="@(activeCategoryGroupKey == group.Key)"
+                            @onclick="() => SelectCategoryGroup(group.Key)">
+                        @group.Title
+                    </button>
+                }
+            </nav>
+
+            <div class="filter-selection-summary">
+                <span>@GetDraftFilterText()</span>
+
+                <button type="button"
+                        @onclick="ClearDraftFilter">
+                    선택 초기화
+                </button>
+            </div>
+
+            <div class="filter-category-list">
+                @foreach (var category in GetActiveCategories())
+                {
+                    <label class="filter-category-item"
+                           @key="category">
+
+                        <input type="checkbox"
+                               checked="@draftCategories.Contains(category)"
+                               @onchange="e => ToggleCategory(category, e)" />
+
+                        <span>@GetCategoryLabel(category)</span>
+                    </label>
+                }
+            </div>
+
+            <footer class="filter-modal-footer">
+                <button type="button"
+                        class="filter-cancel-button"
+                        @onclick="CancelFilter">
+                    취소
+                </button>
+
+                <button type="button"
+                        class="filter-save-button"
+                        @onclick="SaveFilter">
+                    적용하기
+                </button>
+            </footer>
+        </section>
+    </div>
+}
 
 <div id="map"></div>
 
@@ -29,6 +107,189 @@
     #map {
         width: 100%;
         height: 600px;
+    }
+
+    .map-filter-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
+    }
+
+    .filter-open-button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border: 1px solid #e2e5e9;
+        border-radius: 10px;
+        background: #fff;
+        color: #252a34;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .filter-count {
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: #eef4ff;
+        color: #3568c0;
+        font-size: 12px;
+    }
+
+    .filter-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(20, 25, 35, 0.45);
+    }
+
+    .filter-modal {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 520px;
+        max-height: 85vh;
+        overflow: hidden;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .filter-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 22px 22px 16px;
+    }
+
+        .filter-modal-header h3 {
+            margin: 0 0 6px;
+            font-size: 21px;
+        }
+
+        .filter-modal-header p {
+            margin: 0;
+            color: #7b8492;
+            font-size: 13px;
+        }
+
+    .filter-close {
+        border: 0;
+        background: transparent;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .filter-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+        padding: 0 18px;
+    }
+
+        .filter-tabs button {
+            padding: 11px 5px;
+            border: 0;
+            border-radius: 8px;
+            background: #f2f4f7;
+            color: #667085;
+            cursor: pointer;
+        }
+
+            .filter-tabs button.active {
+                background: #263c66;
+                color: #fff;
+                font-weight: 600;
+            }
+
+    .filter-selection-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 16px 22px 10px;
+        color: #667085;
+        font-size: 13px;
+    }
+
+        .filter-selection-summary button {
+            border: 0;
+            background: transparent;
+            color: #3568c0;
+            cursor: pointer;
+        }
+
+    .filter-category-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 8px 22px 20px;
+        overflow-y: auto;
+    }
+
+    .filter-category-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 44px;
+        padding: 10px;
+        border: 1px solid #e7eaf0;
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+
+        .filter-category-item:has(input:checked) {
+            border-color: #7ca4ee;
+            background: #f3f7ff;
+        }
+
+        .filter-category-item input {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            accent-color: #3568c0;
+        }
+
+    .filter-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 16px 22px;
+        border-top: 1px solid #edf0f4;
+    }
+
+        .filter-modal-footer button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+    .filter-cancel-button {
+        border: 1px solid #dfe3e8;
+        background: #fff;
+        color: #475467;
+    }
+
+    .filter-save-button {
+        border: 1px solid #263c66;
+        background: #263c66;
+        color: #fff;
+    }
+
+    @@media (max-width: 480px) {
+        .filter-category-list {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-tabs button {
+            font-size: 12px;
+        }
     }
 </style>
 
@@ -60,14 +321,215 @@
                 .ToListAsync();
 
 
-            // JS로 전달
-            //await JS.InvokeVoidAsync("petMap.init", places);
-            await JS.InvokeVoidAsync("petMap.init", places, new { appKey = kakaoAppKey });
+            // 2. JS 모듈 import
+            _mapModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/index.js"
+            );
+
+            // 3. 실제 지도 초기화
+            await _mapModule.InvokeVoidAsync(
+                "init",
+                places,
+                new
+                {
+                    appKey = kakaoAppKey,
+                    mapId = "map",
+                    level = 5
+                }
+            );
         }
     }
 
-    private async Task FilterCategory(string category)
+    // 모달 열림 여부
+    private bool isFilterModalOpen;
+
+    // 현재 선택된 탭
+    private string activeCategoryGroupKey = "Leisure";
+
+    // 저장된 필터 상태
+    private HashSet<AnimalCategory> appliedCategories = new();
+
+    // 모달 안에서 수정 중인 임시 필터 상태
+    private HashSet<AnimalCategory> draftCategories = new();
+
+    // UI 그룹 구성: 새 탭을 추가할 때 이 목록만 확장하면 된다.
+    private readonly List<CategoryGroup> categoryGroups =
+    [
+        new CategoryGroup(
+            "Leisure",
+            "여가 & 문화",
+            new[]
+            {
+                AnimalCategory.DogCafe,
+                AnimalCategory.BakeryCafe,
+                AnimalCategory.Restaurant,
+                AnimalCategory.Accommodation,
+                AnimalCategory.Studio,
+                AnimalCategory.ShoppingAndCulture,
+                AnimalCategory.Park
+            }
+        ),
+
+        new CategoryGroup(
+            "Care",
+            "케어 & 돌봄",
+            new[]
+            {
+                AnimalCategory.Hospital,
+                AnimalCategory.GroomingShop,
+                AnimalCategory.PetSupplyShop,
+                AnimalCategory.DayCare,
+                AnimalCategory.PetHotel,
+                AnimalCategory.TrainingCenter,
+                AnimalCategory.SelfWash
+            }
+        ),
+
+        new CategoryGroup(
+            "Service",
+            "전문 서비스",
+            new[]
+            {
+                AnimalCategory.PetTaxi,
+                AnimalCategory.FuneralService
+            }
+        )
+    ];
+
+    // enum 값과 화면에 표시할 한국어 이름을 분리한다.
+    private readonly Dictionary<AnimalCategory, string> categoryLabels =
+        new()
+        {
+            [AnimalCategory.DogCafe] = "애견 전용 카페 / 운동장",
+            [AnimalCategory.BakeryCafe] = "애견 동반 카페 / 베이커리",
+            [AnimalCategory.Restaurant] = "애견 동반 식당",
+            [AnimalCategory.Accommodation] = "애견 동반 숙소",
+            [AnimalCategory.Studio] = "사진관 / 스튜디오",
+            [AnimalCategory.ShoppingAndCulture] = "쇼핑 / 문화",
+            [AnimalCategory.Park] = "공원",
+
+            [AnimalCategory.Hospital] = "동물병원",
+            [AnimalCategory.GroomingShop] = "애견 미용실",
+            [AnimalCategory.PetSupplyShop] = "애견 용품점",
+            [AnimalCategory.DayCare] = "유치원 / 데이케어",
+            [AnimalCategory.PetHotel] = "애견 호텔",
+            [AnimalCategory.TrainingCenter] = "훈련소 / 행동 교정",
+            [AnimalCategory.SelfWash] = "셀프 목욕탕",
+
+            [AnimalCategory.PetTaxi] = "펫택시",
+            [AnimalCategory.FuneralService] = "장례 / 추모 시설"
+        };
+
+    private int TotalCategoryCount => Enum.GetValues<AnimalCategory>().Length;
+
+    private IEnumerable<AnimalCategory> GetActiveCategories()
     {
-        await JS.InvokeVoidAsync("petMap.filterCategory", category);
+        return categoryGroups
+            .FirstOrDefault(g => g.Key == activeCategoryGroupKey)
+            ?.Categories
+            ?? Array.Empty<AnimalCategory>();
     }
+
+    private string GetCategoryLabel(AnimalCategory category)
+    {
+        return categoryLabels.TryGetValue(category, out var label)
+            ? label
+            : category.ToString();
+    }
+
+    private void SelectCategoryGroup(string key)
+    {
+        activeCategoryGroupKey = key;
+    }
+
+    private void OpenFilter()
+    {
+        // 임시 선택 상태를 기존 적용 상태로 초기화한다.
+        draftCategories = new HashSet<AnimalCategory>(
+            appliedCategories
+        );
+
+        isFilterModalOpen = true;
+    }
+
+    private void ToggleCategory(
+        AnimalCategory category,
+        ChangeEventArgs e)
+    {
+        var isChecked = e.Value is bool value && value;
+
+        if (isChecked)
+        {
+            draftCategories.Add(category);
+        }
+        else
+        {
+            draftCategories.Remove(category);
+        }
+    }
+
+    private void ClearDraftFilter()
+    {
+        draftCategories.Clear();
+    }
+
+    private void CancelFilter()
+    {
+        // appliedCategories는 건드리지 않으므로 기존 적용 상태가 유지된다.
+        isFilterModalOpen = false;
+    }
+
+    private string GetDraftFilterText()
+    {
+        if (draftCategories.Count == 0 ||
+            draftCategories.Count == TotalCategoryCount)
+        {
+            return "전체 장소 표시";
+        }
+
+        return $"{draftCategories.Count}개 카테고리 선택";
+    }
+
+    private string GetFilterButtonText()
+    {
+        if (appliedCategories.Count == 0 ||
+            appliedCategories.Count == TotalCategoryCount)
+        {
+            return "전체";
+        }
+
+        return $"{appliedCategories.Count}개 선택";
+    }
+
+    private async Task SaveFilter()
+    {
+        // 0개 선택 또는 전체 선택은 모두 '전체 표시'로 처리한다.
+        var showAll =
+            draftCategories.Count == 0 ||
+            draftCategories.Count == TotalCategoryCount;
+
+        appliedCategories = new HashSet<AnimalCategory>(
+            draftCategories
+        );
+
+        isFilterModalOpen = false;
+
+        if (_mapModule is null)
+        {
+            return;
+        }
+
+        var categories = appliedCategories
+            .Select(category => category.ToString())
+            .ToArray();
+
+        await _mapModule.InvokeVoidAsync(
+            "applyCategoryFilter",
+            categories,
+            showAll
+        );
+    }
+
+    private IJSObjectReference? _mapModule;
 }

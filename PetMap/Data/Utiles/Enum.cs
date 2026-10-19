@@ -1,5 +1,6 @@
 ﻿namespace PetMap.Data.Utiles
 {
+
     public enum AnimalCategory
     {
         // --- 여가 & 문화 (Leisure & Culture) ---

@@ -1,16 +1,16 @@
 ﻿
 console.log('[index.js] 파일 로드 시작');
 
-// index.js
-import { initMap } from './src/map/MapManager.js';
+import {
+    initMap,
+    filterCategories
+} from './src/map/MapManager.js';
 
+export async function init(places, options = {}) {
+    return await initMap(places, options);
+}
 
-window.petMap = {
-  // Blazor: JS.InvokeVoidAsync("petMap.init", places, { appKey: '...' })
-    init: function(places, options = {}) {
-        initMap(places, options).catch(err => {
-          console.error('petMap.init 실패:', err);
-    });
-  }
-};
+export function applyCategoryFilter(categories, showAll) {
+    filterCategories(categories, showAll);
+}
 
