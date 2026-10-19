@@ -8,6 +8,7 @@ const THUMBNAIL_LEVEL = 4;
 // 지도와 현재 장소 목록은 필터링 및 확대 수준 변경에 재사용한다.
 let currentMap = null;
 let placeItems = [];
+let externalSearchMarker = null;
 
 // Kakao 지도를 만들고 장소 마커, 정보창, 썸네일을 연결한다.
 export async function initMap(places = [], options = {}) {
@@ -60,6 +61,7 @@ function createPlaceItem(kakao, map, place, infoWindow) {
     return {
         marker,
         overlay: createThumbnailOverlay(kakao, place, position),
+        placeName: place.name ?? '',
         categories,
         visible: true
     };
@@ -88,5 +90,51 @@ export function filterCategories(categories = [], showAll = false) {
         item.visible = showAll || item.categories.some(category => selectedCategories.has(category));
         item.marker.setMap(item.visible ? currentMap : null);
         item.overlay?.setMap(item.visible && showThumbnails ? currentMap : null);
+    });
+}
+
+// 카카오 로컬 장소 검색 API로 지도 주변 장소를 검색한다.
+export function searchKakaoPlaces(keyword) {
+    if (!window.kakao?.maps?.services) {
+        return Promise.reject(new Error('카카오 장소 검색 서비스를 사용할 수 없습니다.'));
+    }
+
+    const service = new window.kakao.maps.services.Places();
+    return new Promise((resolve, reject) => {
+        service.keywordSearch(keyword, (data, status) => {
+            if (status === window.kakao.maps.services.Status.OK) {
+                resolve(data.map(place => ({
+                    name: place.place_name,
+                    address: place.address_name,
+                    roadAddress: place.road_address_name,
+                    latitude: Number(place.y),
+                    longitude: Number(place.x),
+                    category: place.category_name,
+                    phone: place.phone,
+                    placeUrl: place.place_url
+                })));
+            } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+                resolve([]);
+            } else {
+                reject(new Error('카카오 장소 검색에 실패했습니다.'));
+            }
+        }, { size: 6 });
+    });
+}
+
+// 카카오 검색 결과를 선택하면 별도 검색 마커를 놓고 해당 위치로 이동한다.
+export function moveToKakaoPlace(place) {
+    if (!currentMap || !place) return;
+
+    const kakao = window.kakao;
+    const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+    currentMap.setLevel(3);
+    currentMap.panTo(position);
+
+    if (externalSearchMarker) externalSearchMarker.setMap(null);
+    externalSearchMarker = new kakao.maps.Marker({
+        map: currentMap,
+        position,
+        title: place.name
     });
 }
