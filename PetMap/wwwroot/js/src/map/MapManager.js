@@ -4,6 +4,7 @@ import { createPlaceInfoWindow } from './placeInfoWindow.js';
 import { createThumbnailOverlay } from './thumbnailOverlay.js';
 
 const THUMBNAIL_LEVEL = 4;
+const ANYANG_UNIVERSITY_CENTER = { latitude: 37.3911593, longitude: 126.9197963 };
 
 // 지도와 현재 장소 목록은 필터링 및 확대 수준 변경에 재사용한다.
 let currentMap = null;
@@ -24,7 +25,10 @@ export async function initMap(places = [], options = {}) {
     }
 
     const map = new kakao.maps.Map(mapElement, {
-        center: new kakao.maps.LatLng(37.4751, 126.6432),
+        center: new kakao.maps.LatLng(
+            ANYANG_UNIVERSITY_CENTER.latitude,
+            ANYANG_UNIVERSITY_CENTER.longitude
+        ),
         level: options.level ?? 5
     });
 
@@ -33,12 +37,92 @@ export async function initMap(places = [], options = {}) {
     // 각 장소의 마커와 썸네일을 만들어 관리 목록에 보관한다.
     placeItems = (places ?? []).map(place => createPlaceItem(kakao, map, place, infoWindow));
 
+    // 안양시 만안구와 동안구 행정경계를 지도에 표시한다.
+    await drawAnyangDistricts(kakao, map);
+
     // 확대 수준이 바뀌면 썸네일 표시 여부를 다시 계산한다.
     const refreshThumbnails = () => updateThumbnails(map);
     kakao.maps.event.addListener(map, 'zoom_changed', refreshThumbnails);
     refreshThumbnails();
 
     return { map };
+}
+
+async function drawAnyangDistricts(kakao, map) {
+    try {
+        const response = await fetch('/data/anyang-districts.geojson');
+        if (!response.ok) throw new Error(`행정경계 파일 로드 실패: ${response.status}`);
+        const geoJson = await response.json();
+        const districtStyles = {
+            '안양시 만안구': { stroke: '#2864c5', fill: '#4f8df5' },
+            '안양시 동안구': { stroke: '#e67822', fill: '#f6a04d' }
+        };
+
+        geoJson.features.forEach(feature => {
+            const districtName = feature.properties.name;
+            const style = districtStyles[districtName];
+            if (!style) return;
+
+            const polygonRings = feature.geometry.type === 'Polygon'
+                ? feature.geometry.coordinates
+                : feature.geometry.coordinates.flat();
+            const outerRing = polygonRings[0] ?? [];
+            const path = outerRing.map(([longitude, latitude]) =>
+                new kakao.maps.LatLng(latitude, longitude));
+
+            new kakao.maps.Polygon({
+                map,
+                path,
+                strokeWeight: 3,
+                strokeColor: style.stroke,
+                strokeOpacity: 0.9,
+                strokeStyle: 'solid',
+                fillColor: style.fill,
+                fillOpacity: 0.08,
+                zIndex: 1
+            });
+
+            const center = getRingCenter(outerRing);
+            new kakao.maps.CustomOverlay({
+                map,
+                position: new kakao.maps.LatLng(center.latitude, center.longitude),
+                content: `<div class="district-map-label" style="--district-color:${style.stroke}">${districtName.replace('안양시 ', '')}</div>`,
+                yAnchor: 0.5,
+                zIndex: 2
+            });
+        });
+    } catch (error) {
+        console.warn('안양시 구 경계를 표시하지 못했습니다.', error);
+    }
+}
+
+// GeoJSON 외곽선의 면적 중심을 계산해 구 이름을 경계 안에 배치한다.
+function getRingCenter(ring) {
+    let areaTwice = 0;
+    let longitudeTotal = 0;
+    let latitudeTotal = 0;
+
+    for (let index = 0; index < ring.length - 1; index++) {
+        const [longitudeA, latitudeA] = ring[index];
+        const [longitudeB, latitudeB] = ring[index + 1];
+        const cross = longitudeA * latitudeB - longitudeB * latitudeA;
+        areaTwice += cross;
+        longitudeTotal += (longitudeA + longitudeB) * cross;
+        latitudeTotal += (latitudeA + latitudeB) * cross;
+    }
+
+    if (Math.abs(areaTwice) < 1e-12) {
+        const points = ring.slice(0, -1);
+        return {
+            longitude: points.reduce((sum, point) => sum + point[0], 0) / points.length,
+            latitude: points.reduce((sum, point) => sum + point[1], 0) / points.length
+        };
+    }
+
+    return {
+        longitude: longitudeTotal / (3 * areaTwice),
+        latitude: latitudeTotal / (3 * areaTwice)
+    };
 }
 
 // 장소 하나에 마커, 클릭 이벤트, 썸네일 오버레이를 연결한다.
