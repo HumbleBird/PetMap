@@ -1,0 +1,153 @@
+@page "/"
+@layout PetMap.Components.Layout.LandingLayout
+@rendermode InteractiveServer
+
+@if (content is not null)
+{
+    <div class="landing-page">
+        <header class="landing-header">
+            <a class="landing-brand" href="/" aria-label="처음으로">
+                <span class="brand-mark">🐾</span>
+                <span>@content.BrandName</span>
+            </a>
+            <nav class="landing-nav" aria-label="주 메뉴">
+                <a href="#about">서비스 소개</a>
+                <a href="#guide">이용 안내</a>
+                <a href="/map" class="nav-map-button">지도 보기 <span aria-hidden="true">→</span></a>
+            </nav>
+        </header>
+
+        <section class="landing-hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+                <p class="hero-eyebrow">@content.BrandSubtitle</p>
+                <h1 id="hero-title">@content.HeroTitle</h1>
+                <h2>@content.HeroLead</h2>
+                <p class="hero-description">@content.HeroDescription</p>
+                <div class="hero-actions">
+                    <a class="primary-action" href="/map">지도 둘러보기 <span aria-hidden="true">→</span></a>
+                    <a class="secondary-action" href="#about">서비스 알아보기</a>
+                </div>
+                <div class="hero-note"><span>✳</span> 안양에서 반려동물과 함께 걷는 새로운 방법</div>
+            </div>
+
+            <div class="hero-map" aria-label="만안구와 동안구의 반려동물 동반 장소를 표현한 지도 삽화">
+                <div class="sun-disc"></div>
+                <div class="map-cloud cloud-one"></div>
+                <div class="map-cloud cloud-two"></div>
+                <div class="district-map-art">
+                    <svg class="district-roads" viewBox="0 0 600 560" aria-hidden="true">
+                        <path class="river" d="M52 279 C130 252 173 290 220 274 S317 223 360 245 450 296 544 262" />
+                        <path class="road" d="M84 80 C145 150 160 215 210 270 S303 362 330 470" />
+                        <path class="road" d="M478 70 C418 144 420 205 360 245 S248 327 160 466" />
+                        <path class="road minor" d="M110 184 L468 184 M86 356 L512 356 M255 58 L245 480 M390 112 L405 436" />
+                        <path class="road minor" d="M130 110 L460 420 M460 110 L120 430" />
+                    </svg>
+                    <span class="district-name manan-name">@content.MananLabel</span>
+                    <span class="district-name dongan-name">@content.DonganLabel</span>
+                    <span class="map-pin pin-a">🐾</span><span class="map-pin pin-b">●</span>
+                    <span class="map-pin pin-c">🐾</span><span class="map-pin pin-d">●</span>
+                    <span class="map-pin pin-e">🐾</span><span class="map-pin pin-f">●</span>
+                    <span class="map-pin pin-g">🐾</span><span class="map-pin pin-h">●</span>
+                    <span class="map-tree tree-a">♣</span><span class="map-tree tree-b">♣</span>
+                    <span class="map-tree tree-c">♣</span><span class="map-tree tree-d">♣</span>
+                </div>
+                <div class="hero-map-caption"><span class="caption-dot"></span> 반려동물과 함께 갈 수 있는 장소</div>
+            </div>
+        </section>
+
+        <section id="about" class="feature-grid" aria-label="서비스 특징">
+            @foreach (var feature in content.Features)
+            {
+                <article class="feature-card" @key="feature.Number">
+                    <div class="feature-heading">
+                        <span class="feature-number">@feature.Number</span>
+                        <h3>@feature.Title</h3>
+                    </div>
+                    <p>@feature.Description</p>
+                    @if (feature.Tags.Count > 0)
+                    {
+                        <div class="feature-tags">
+                            @foreach (var tag in feature.Tags)
+                            {
+                                <span @key="tag">@tag</span>
+                            }
+                        </div>
+                    }
+                </article>
+            }
+        </section>
+
+        <section id="guide" class="guide-section">
+            <div class="guide-heading">
+                <span class="section-kicker">PETMAP GUIDE</span>
+                <h2>@content.GuideTitle</h2>
+                <p>@content.GuideDescription</p>
+            </div>
+
+            <div class="guide-showcase">
+                <article class="paper-guide">
+                    <div class="paper-guide-topline"><span>반려동물과 함께 걷는 안양</span><span>안양시 생활 안내</span></div>
+                    <div class="paper-guide-columns">
+                        <section class="paper-column rules-column">
+                            <span class="paper-label">01 · 함께 지키는 약속</span>
+                            <h3>@content.RulesTitle</h3>
+                            <p>@content.RulesDescription</p>
+                            <ol>
+                                @foreach (var rule in content.Rules) { <li @key="rule">@rule</li> }
+                            </ol>
+                            <div class="paw-stamp">🐾</div>
+                        </section>
+                        <section class="paper-column brand-column">
+                            <span class="paper-label">PET FRIENDLY ANYANG</span>
+                            <h3>@content.BrandName</h3>
+                            <p>@content.BrandSubtitle</p>
+                            <div class="ink-landscape" aria-hidden="true">
+                                <span class="ink-sun"></span>
+                                <svg viewBox="0 0 300 150"><path d="M0 130 Q58 65 108 112 Q153 22 210 93 Q256 40 300 75 L300 150 L0 150Z"/><path d="M0 143 Q82 103 140 132 T300 125"/></svg>
+                            </div>
+                            <div class="paper-seal">안양</div>
+                        </section>
+                        <section class="paper-column places-column">
+                            <span class="paper-label">02 · 추천 장소</span>
+                            <h3>@content.PlacesTitle</h3>
+                            @foreach (var place in content.SamplePlaces)
+                            {
+                                <div class="mini-place" @key="place.Name">
+                                    <div class="mini-place-photo">@place.Icon</div>
+                                    <div><strong>@place.Name</strong><span>@place.Category</span><small>@place.Description</small></div>
+                                </div>
+                            }
+                        </section>
+                    </div>
+                    <div class="paper-guide-bottom"><span>함께 걷는 안양, 반려동물과 더 가까운 일상</span><span>@content.BrandName</span></div>
+                </article>
+
+                <aside class="phone-preview" aria-label="모바일 웹사이트 미리보기">
+                    <div class="phone-frame">
+                        <div class="phone-camera"></div>
+                        <div class="phone-screen">
+                            <div class="phone-topbar"><strong>@content.BrandName</strong><span>☰</span></div>
+                            <p class="phone-subtitle">@content.BrandSubtitle</p>
+                            <div class="phone-filter-row"><span>전체</span><span>카페</span><span>음식점</span><span>공원</span></div>
+                            <div class="phone-map-art">
+                                <span class="phone-river"></span>
+                                <i class="phone-pin pp1">🐾</i><i class="phone-pin pp2">●</i><i class="phone-pin pp3">🐾</i><i class="phone-pin pp4">●</i><i class="phone-pin pp5">🐾</i>
+                            </div>
+                            <div class="phone-place-card">
+                                <div class="phone-place-photo">🌳</div>
+                                <div><strong>@content.MobileCardTitle</strong><small>@content.MobileCardDescription</small><span>자세히 보기　→</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="phone-caption">모바일에서도 쉽고 편리하게</p>
+                </aside>
+            </div>
+        </section>
+
+        <footer class="landing-footer">
+            <p>@content.FooterMessage</p>
+            <a href="/map">안양 지도 시작하기 <span aria-hidden="true">→</span></a>
+            <small>© @DateTime.Now.Year @content.BrandName</small>
+        </footer>
+    </div>
+}

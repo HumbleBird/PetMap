@@ -1,6 +1,4 @@
-@using PetMap.Data.Entities
 @using PetMap.Data
-@using PetMap.Data.Utiles
 
 @inject ApplicationDbContext Db
 @inject IJSRuntime JS
@@ -8,7 +6,8 @@
 <!-- 제보 입력 화면은 별도 모달로 표시한다. -->
 <button class="report-button"
         @onclick="OpenReportModal">
-    + 제보하기
+    <span class="report-button-icon" aria-hidden="true">+</span>
+    <span>장소 제보</span>
 </button>
 
 @* 제보 작성 폼 *@
