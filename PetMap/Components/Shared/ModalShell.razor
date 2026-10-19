@@ -1,0 +1,43 @@
+@if (IsOpen)
+{
+    <div class="shared-modal-backdrop" @onclick="HandleBackdropClick">
+        <section class="shared-modal @CssClass"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="@TitleId"
+                 @onclick:stopPropagation="true">
+            <header class="shared-modal-header">
+                <h4 id="@TitleId">@Title</h4>
+                <button type="button"
+                        class="shared-modal-close"
+                        aria-label="닫기"
+                        @onclick="OnClose">×</button>
+            </header>
+
+            <div class="shared-modal-body">
+                @ChildContent
+            </div>
+
+            @if (FooterContent is not null)
+            {
+                <footer class="shared-modal-footer">
+                    @FooterContent
+                </footer>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; } = true;
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string TitleId { get; set; } = "shared-modal-title";
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public bool CloseOnBackdrop { get; set; } = true;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? FooterContent { get; set; }
+
+    private Task HandleBackdropClick() =>
+        CloseOnBackdrop ? OnClose.InvokeAsync() : Task.CompletedTask;
+}

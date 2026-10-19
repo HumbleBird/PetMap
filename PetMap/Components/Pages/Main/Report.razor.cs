@@ -18,6 +18,38 @@ public partial class Report : ComponentBase, IDisposable
 
 
     private List<KakaoPlaceResult> searchResults = new();
+    private string activeCategoryGroupKey = "Leisure";
+    private readonly List<CategoryGroup> categoryGroups =
+    [
+        new("Leisure", "여가 & 문화",
+        [
+            AnimalCategory.DogCafe,
+            AnimalCategory.BakeryCafe,
+            AnimalCategory.Restaurant,
+            AnimalCategory.Accommodation,
+            AnimalCategory.Studio,
+            AnimalCategory.ShoppingAndCulture,
+            AnimalCategory.Park
+        ]),
+        new("Care", "케어 & 돌봄",
+        [
+            AnimalCategory.Hospital,
+            AnimalCategory.GroomingShop,
+            AnimalCategory.PetSupplyShop,
+            AnimalCategory.DayCare,
+            AnimalCategory.PetHotel,
+            AnimalCategory.TrainingCenter,
+            AnimalCategory.SelfWash
+        ]),
+        new("Service", "전문 서비스",
+        [
+            AnimalCategory.PetTaxi,
+            AnimalCategory.FuneralService
+        ])
+    ];
+
+    private sealed record CategoryGroup(string Key, string Title, AnimalCategory[] Categories);
+
     public class KakaoPlaceResult
     {
         public string Name { get; set; } = "";
@@ -42,6 +74,7 @@ public partial class Report : ComponentBase, IDisposable
     // 창을 열기 전에 브라우저에 저장된 임시 제보가 있으면 복원한다.
     private async Task OpenReportModal()
     {
+        activeCategoryGroupKey = "Leisure";
         var draftJson = await LoadTempReportAsync();
         if (!string.IsNullOrWhiteSpace(draftJson))
         {
@@ -181,6 +214,33 @@ public partial class Report : ComponentBase, IDisposable
 
         StateHasChanged();
     }
+
+    private void SelectCategoryGroup(string key) => activeCategoryGroupKey = key;
+
+    private IEnumerable<AnimalCategory> GetActiveCategories() => categoryGroups
+        .First(group => group.Key == activeCategoryGroupKey)
+        .Categories;
+
+    private static string GetCategoryLabel(AnimalCategory category) => category switch
+    {
+        AnimalCategory.DogCafe => "애견 전용 카페 / 운동장",
+        AnimalCategory.BakeryCafe => "애견 동반 카페 / 베이커리",
+        AnimalCategory.Restaurant => "애견 동반 식당",
+        AnimalCategory.Accommodation => "애견 동반 숙소",
+        AnimalCategory.Studio => "사진관 / 스튜디오",
+        AnimalCategory.ShoppingAndCulture => "쇼핑 / 문화",
+        AnimalCategory.Park => "공원",
+        AnimalCategory.Hospital => "동물병원",
+        AnimalCategory.GroomingShop => "애견 미용실",
+        AnimalCategory.PetSupplyShop => "애견 용품점",
+        AnimalCategory.DayCare => "유치원 / 데이케어",
+        AnimalCategory.PetHotel => "애견 호텔",
+        AnimalCategory.TrainingCenter => "훈련소 / 행동 교정",
+        AnimalCategory.SelfWash => "셀프 목욕탕",
+        AnimalCategory.PetTaxi => "펫택시",
+        AnimalCategory.FuneralService => "장례 / 추모 시설",
+        _ => category.ToString()
+    };
 
     // 저장 안 함을 선택하면 초안과 입력 상태를 모두 지운다.
     private async Task NotSaveTempReport()

@@ -14,30 +14,11 @@
 @* 제보 작성 폼 *@
 @if (showReportModal)
 {
-    <!-- 화면 전체를 어둡게 -->
-    <div class="modal-backdrop">
-
-        <!-- 실제 작은 창 -->
-        <div class="report-modal">
-
-            <!-- 상단 -->
-            <div class="modal-header">
-
-                <h4>장소 제보</h4>
-
-                <!-- 오른쪽 위 X -->
-                <button class="close-button"
-                        type="button"
-                        aria-label="닫기"
-                        @onclick="ShowCheckCloseReportModal">
-                    ×
-                </button>
-
-            </div>
-
-
-            <!-- 가운데 내용 : 여기가 스크롤됨 -->
-            <div class="modal-body">
+    <ModalShell Title="장소 제보"
+                TitleId="place-report-title"
+                OnClose="ShowCheckCloseReportModal"
+                CloseOnBackdrop="false">
+        <ChildContent>
                 <div class="mb-3">
 
                     <label class="form-label">
@@ -106,49 +87,45 @@
 
                 <div class="mb-3">
 
-                    <div class="category-box">
-
-                        <div class="category-header">
-                            <strong>카테고리</strong>
-
-                            <span class="category-count">
-                                선택됨: @selectedCategories.Count/3
-                            </span>
+                    <fieldset class="category-box">
+                        <legend class="form-label">카테고리 (최대 3개)</legend>
+                        <nav class="category-tabs" aria-label="카테고리 그룹">
+                            @foreach (var group in categoryGroups)
+                            {
+                                <button type="button"
+                                        class="@(activeCategoryGroupKey == group.Key ? "active" : "")"
+                                        aria-pressed="@(activeCategoryGroupKey == group.Key)"
+                                        @onclick="() => SelectCategoryGroup(group.Key)">
+                                    @group.Title
+                                </button>
+                            }
+                        </nav>
+                        <div class="category-selection-summary">
+                            선택됨: @selectedCategories.Count/3
                         </div>
-
                         <div class="category-grid">
-
-                            @foreach (var category in Enum.GetValues(typeof(AnimalCategory))
-                                                          .Cast<AnimalCategory>())
+                            @foreach (var category in GetActiveCategories())
                             {
                                 var categoryName = category.ToString();
                                 var isChecked = selectedCategories.Contains(categoryName);
                                 var isDisabled = !isChecked && selectedCategories.Count >= 3;
 
                                 <label class="category-item">
-
                                     <input type="checkbox"
                                            checked="@isChecked"
                                            disabled="@isDisabled"
                                            @onchange="() => ToggleCategory(categoryName)" />
-
-                                    <span class="category-name">
-                                        @categoryName
-                                    </span>
-
+                                    <span>@GetCategoryLabel(category)</span>
                                 </label>
                             }
-
                         </div>
-
                         @if (selectedCategories.Count == 0)
                         {
                             <div class="category-warning">
                                 카테고리를 최소 1개 선택해주세요.
                             </div>
                         }
-
-                    </div>
+                    </fieldset>
 
                 </div>
 
@@ -215,11 +192,8 @@
                 </div>
 
     
-            </div>
-
-            <!-- 하단 버튼 -->
-            <div class="modal-footer">
-
+        </ChildContent>
+        <FooterContent>
                 <button class="btn btn-secondary"
                         type="button"
                         @onclick="ShowCheckCloseReportModal">
@@ -227,15 +201,12 @@
                 </button>
 
                 <button class="btn btn-primary"
+                        type="button"
                         @onclick="SubmitReport">
                     등록
                 </button>
-
-            </div>
-
-        </div>
-
-    </div>
+        </FooterContent>
+    </ModalShell>
 }
 
 @* 닫기 확인 모달은 작성 폼 위에 겹쳐 표시한다. *@

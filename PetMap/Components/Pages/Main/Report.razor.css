@@ -1,15 +1,4 @@
 
-    /* 화면 전체 */
-    .modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-
     /* 확인 모달이 제보 창 위에 겹치며 배경을 덮어 제보 창도 어둡게 한다. */
     .close-confirm-backdrop {
         position: fixed;
@@ -52,72 +41,6 @@
     .not-save-button { background: #dc3545; color: #fff; }
     .save-button { background: #0d6efd; color: #fff; }
 
-
-    /* 실제 제보 창 */
-    .report-modal {
-        width: 550px;
-        max-width: 90vw;
-        height: 700px;
-        max-height: 85vh;
-        background: white;
-        border-radius: 12px;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    }
-
-
-    /* 상단 */
-    .modal-header {
-        flex-shrink: 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        border-bottom: 1px solid #ddd;
-    }
-
-
-        /* 제목 */
-        .modal-header h4 {
-            margin: 0;
-        }
-
-
-    /* X 버튼 */
-    .close-button {
-        border: none;
-        background: none;
-        font-size: 28px;
-        line-height: 1;
-        cursor: pointer;
-        color: #555;
-    }
-
-        .close-button:hover {
-            color: #000;
-        }
-
-
-    /* 가운데 입력 영역 */
-    .modal-body {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-    }
-
-
-    /* 하단 버튼 */
-    .modal-footer {
-        flex-shrink: 0;
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        padding: 15px 20px;
-        border-top: 1px solid #ddd;
-        background: white;
-    }
 
     /* 검색 결과 전체 영역 */
     .search-results {
@@ -178,56 +101,38 @@
         background: #fff;
     }
 
-    /* 상단 제목 + 선택 개수 */
-    .category-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 14px;
+    .category-box legend { float: none; width: auto; margin-bottom: 12px; }
+
+    .category-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
     }
 
-        .category-header strong {
-            font-size: 16px;
-        }
-
-    .category-count {
-        font-size: 13px;
-        color: #777;
+    .category-tabs button {
+        padding: 9px 5px;
+        border: 0;
+        border-radius: 8px;
+        background: #f2f4f7;
+        color: #667085;
+        cursor: pointer;
     }
+
+    .category-tabs button.active { background: #263c66; color: #fff; font-weight: 600; }
+    .category-selection-summary { padding: 10px 2px; color: #667085; font-size: 13px; }
 
     /* 체크박스 그리드 */
     .category-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 10px 18px;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 8px;
     }
 
-    /* 개별 카테고리 */
     .category-item {
         display: flex;
         align-items: center;
         gap: 8px;
         cursor: pointer;
-        font-size: 14px;
-    }
-
-        /* 체크박스 */
-        .category-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin: 0;
-            cursor: pointer;
-            accent-color: #0d6efd;
-        }
-
-            /* 비활성화 */
-            .category-item input[type="checkbox"]:disabled {
-                cursor: not-allowed;
-            }
-
-    /* 카테고리 이름 */
-    .category-name {
-        user-select: none;
     }
 
     /* 최소 1개 안내 */

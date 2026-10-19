@@ -58,3 +58,72 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* 장소 제보와 장소 관리가 함께 쓰는 모달 틀 */
+.shared-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, .52);
+}
+
+.shared-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(680px, 96vw);
+    max-height: 90vh;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, .28);
+}
+
+.shared-modal-header,
+.shared-modal-footer {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    padding: 14px 20px;
+}
+
+.shared-modal-header {
+    justify-content: space-between;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.shared-modal-header h4 { margin: 0; }
+
+.shared-modal-close {
+    border: 0;
+    background: transparent;
+    color: #555;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.shared-modal-close:hover { color: #000; }
+
+.shared-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px;
+}
+
+.shared-modal-footer {
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 480px) {
+    .shared-modal-backdrop { padding: 12px; }
+    .shared-modal { width: 100%; max-height: 92vh; }
+    .shared-modal-header, .shared-modal-footer { padding: 12px 16px; }
+    .shared-modal-body { padding: 16px; }
+}
