@@ -6,11 +6,14 @@ import {
     filterCategories,
     searchKakaoPlaces,
     moveToKakaoPlace,
-    enableSearchCategoryWheel
+    enableSearchCategoryWheel,
+    relayoutMap,
+    renderPlaceMiniMap,
+    updatePlaceRating as updateMapPlaceRating
 } from './src/map/MapManager.js';
 
-export async function init(places, options = {}) {
-    const result = await initMap(places, options);
+export async function init(places, options = {}, placeSelectedCallback = null) {
+    const result = await initMap(places, options, placeSelectedCallback);
     enableSearchCategoryWheel();
     return result;
 }
@@ -25,5 +28,17 @@ export function searchPlaces(keyword, filters) {
 
 export function moveToPlace(place) {
     moveToKakaoPlace(place);
+}
+
+export function relayout() {
+    relayoutMap();
+}
+
+export function showPlaceMiniMap(latitude, longitude, elementId, appKey) {
+    return renderPlaceMiniMap(latitude, longitude, elementId, appKey);
+}
+
+export function updatePlaceRating(placeId, summary) {
+    updateMapPlaceRating(placeId, summary);
 }
 

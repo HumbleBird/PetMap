@@ -6,11 +6,14 @@
 @using PetMap.Components.Pages.Models
 @using Microsoft.EntityFrameworkCore
 @using PetMap.Components.Pages.Main
+@using Microsoft.AspNetCore.Components.Forms
 
 @inject IJSRuntime JS
 
 @inject PetMap.Data.ApplicationDbContext Db
 @inject NavigationManager Navigation
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject IWebHostEnvironment Environment
 
 <PageTitle>지도 | 댕동여지도</PageTitle>
 
@@ -117,6 +120,102 @@
     </div>
 }
 
+<div class="map-body">
+        <aside class="place-detail-panel @(selectedPlace is null ? "" : "open")" aria-label="장소 상세 정보" aria-hidden="@(selectedPlace is null)">
+            @if (selectedPlace is not null)
+            {
+            <header class="place-detail-header">
+                <span>장소 정보</span>
+                <button type="button" aria-label="상세 정보 닫기" @onclick="ClosePlaceDetails">×</button>
+            </header>
+            @if (selectedPlaceImages.Count > 0)
+            {
+                <img class="place-detail-cover" src="@selectedPlaceImages[0]" alt="@selectedPlace.Name 사진" />
+            }
+            <section class="place-detail-main">
+                <div class="place-detail-meta"><span>@selectedPlace.Category</span><span>제보일 @(selectedPlace.ReportDate?.ToString("yyyy.MM.dd") ?? "정보 없음")</span></div>
+                <h2>@selectedPlace.Name</h2>
+                <p class="place-detail-address">@selectedPlace.Address</p>
+                <div class="place-detail-actions">
+                    <button type="button" class="favorite-button @(isFavorite ? "active" : "")" @onclick="ToggleFavoriteAsync">♡ @(isFavorite ? "찜 완료" : "찜")</button>
+                    <a class="naver-place-button" href="@GetNaverSearchUrl(selectedPlace)" target="_blank" rel="noopener noreferrer">네이버 지도에서 검색하기 ↗</a>
+                </div>
+                @if (selectedPlace.Category.Contains("Restaurant", StringComparison.OrdinalIgnoreCase))
+                {
+                    <h3>메뉴</h3><p>@(string.IsNullOrWhiteSpace(selectedPlace.Menu) ? "등록된 메뉴 정보가 없습니다." : selectedPlace.Menu)</p>
+                }
+                <h3>태그</h3>
+                <div class="place-detail-tags">
+                    @if (!string.IsNullOrWhiteSpace(selectedPlace.RestaurantType))
+                    { <span>@selectedPlace.RestaurantType</span> }
+                    @foreach (var tag in selectedPlace.Category.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var tagLabel = Enum.TryParse<AnimalCategory>(tag, out var parsed) ? GetCategoryLabel(parsed) : tag;
+                        <span>@tagLabel</span>
+                    }
+                </div>
+                <h3>영업시간</h3><p>@(selectedPlace.BusinessHours ?? "정보 없음")</p>
+                <h3>메모</h3><p>@(selectedPlace.Memo ?? selectedPlace.Description ?? "등록된 메모가 없습니다.")</p>
+                <h3>종합평점</h3>
+                <div class="place-rating-summary">@(selectedPlace.RatingCount > 0 ? $"★ {selectedPlace.AverageRating:F1} ({selectedPlace.RatingCount}명)" : "아직 평가가 없습니다.")</div>
+                <div class="place-rate-control" aria-label="평점 평가하기">
+                    <span>평점 평가하기</span>
+                    @if (isAuthenticated)
+                    {
+                        @for (var score = 1; score <= 5; score++)
+                        {
+                            var selectedScore = score;
+                            <button type="button" aria-label="@($"{selectedScore}점 평가")" class="@(selectedScore <= currentUserRating ? "selected" : "")" @onclick="() => RateSelectedPlaceAsync(selectedScore)">★</button>
+                        }
+                    }
+                    else { <a href="/Account/Login?ReturnUrl=%2Fmap">로그인 후 평가</a> }
+                </div>
+                <div id="place-mini-map" class="place-mini-map" aria-label="장소 위치 지도"></div>
+                <p class="place-detail-address">@selectedPlace.Address</p>
+            </section>
+
+            <section class="place-comments">
+                <div class="place-comments-heading"><h3>댓글 <span>@placeComments.Count</span></h3>
+                    <div><button type="button" class="@(commentSort == "latest" ? "active" : "")" @onclick='() => SortComments("latest")'>최신순</button><button type="button" class="@(commentSort == "likes" ? "active" : "")" @onclick='() => SortComments("likes")'>좋아요 순</button></div>
+                </div>
+                @if (isAuthenticated)
+                {
+                    <div class="comment-login-note">@currentAuthorName 회원으로 댓글을 남겨보세요.</div>
+                }
+                else
+                {
+                    <div class="guest-comment-fields"><input @bind="guestName" placeholder="비회원 아이디" maxlength="80" /><input @bind="guestPassword" type="password" placeholder="비회원 비밀번호" /></div>
+                    <div class="comment-login-note">회원으로 댓글을 남겨보세요. <a href="/Account/Login?ReturnUrl=%2Fmap">로그인 / 회원가입</a></div>
+                }
+                <textarea @bind="commentText" maxlength="2000" placeholder="장소에 대한 경험을 남겨주세요."></textarea>
+                <div class="comment-compose-footer"><label class="comment-image-upload">이미지 추가 @commentImages.Count/5<InputFile OnChange="HandleCommentImages" multiple accept="image/*" /></label><button type="button" @onclick="SubmitCommentAsync">등록</button></div>
+                @if (!string.IsNullOrWhiteSpace(commentError)) { <p class="comment-error">@commentError</p> }
+                @if (placeComments.Count == 0)
+                {
+                    <div class="no-comments">아직 댓글이 없습니다.<br /><small>첫 번째 댓글을 남겨보세요.</small></div>
+                }
+                else
+                {
+                    @foreach (var comment in placeComments)
+                    {
+                        <article class="place-comment" @key="comment.Id">
+                            <div class="place-comment-top"><strong>@comment.AuthorName</strong><span>@(comment.Rating.HasValue ? $"★ {comment.Rating:F1}" : "평점 없음")</span><time>@comment.CreatedAt.ToString("yyyy.MM.dd")</time></div>
+                            <p>@comment.Content</p>
+                            @if (comment.ImagePaths.Count > 0) { <div class="place-comment-images">@foreach (var image in comment.ImagePaths) { <img src="@image" alt="댓글 첨부 이미지" /> }</div> }
+                            @if (isAuthenticated)
+                            {
+                                <button type="button" class="comment-like @(comment.HasLiked ? "liked" : "")" aria-pressed="@comment.HasLiked" @onclick="() => LikeCommentAsync(comment.Id)">@(comment.HasLiked ? "♥" : "♡") 좋아요 @comment.LikesCount</button>
+                            }
+                            else
+                            {
+                                <a class="comment-like" href="/Account/Login?ReturnUrl=%2Fmap">♡ 로그인하고 좋아요 @comment.LikesCount</a>
+                            }
+                        </article>
+                    }
+                }
+            </section>
+            }
+        </aside>
 <div class="map-canvas-wrap">
     <div class="map-search" role="search">
         <div class="map-filter-toolbar">
@@ -206,6 +305,7 @@
         <small>경계 자료: 국가공간정보포털</small>
     </div>
     <div id="map"></div>
+</div>
 </div>
 </div>
 

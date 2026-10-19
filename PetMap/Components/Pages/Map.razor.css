@@ -122,6 +122,85 @@
     position: relative;
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
+}
+
+.map-body { position: relative; display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; }
+.place-detail-panel {
+    position: absolute;
+    z-index: 6;
+    inset: 0 auto 0 0;
+    display: flex;
+    width: min(390px, calc(100vw - 24px));
+    flex-direction: column;
+    overflow-y: auto;
+    border-right: 1px solid #e6e9ed;
+    background: #fff;
+    box-shadow: 5px 0 20px rgba(24, 39, 75, .08);
+    transform: translateX(-102%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 280ms cubic-bezier(.2, .75, .25, 1), visibility 0s linear 280ms;
+}
+.place-detail-panel.open {
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;
+}
+.place-detail-header { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #edf0f3; background: #fff; color: #667085; font-size: 13px; font-weight: 700; }
+.place-detail-header button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: #f2f4f7; font-size: 22px; cursor: pointer; }
+.place-detail-cover { width: 100%; height: 205px; object-fit: cover; background: #f2f4f7; }
+.place-detail-main { padding: 16px 20px; }
+.place-detail-meta { display: flex; justify-content: space-between; gap: 8px; color: #758093; font-size: 11px; }
+.place-detail-main h2 { margin: 8px 0 5px; color: #1e2a36; font-size: 22px; }
+.place-detail-address { color: #687385; font-size: 13px; }
+.place-detail-actions { display: flex; gap: 8px; margin: 14px 0 18px; }
+.place-detail-actions button, .place-detail-actions a { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 12px; border: 1px solid #dce2e8; border-radius: 9px; background: #fff; color: #344054; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.place-detail-actions .favorite-button.active { border-color: #f1c7cc; background: #fff2f3; color: #c44352; }
+.place-detail-actions .naver-place-button { border-color: #1b9a57; color: #16844b; }
+.place-detail-main h3 { margin: 16px 0 6px; color: #354253; font-size: 13px; }
+.place-detail-main > p { margin: 4px 0; color: #657184; font-size: 13px; line-height: 1.55; white-space: pre-line; }
+.place-detail-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.place-detail-tags span { padding: 5px 9px; border-radius: 999px; background: #f1f5f3; color: #38584d; font-size: 11px; }
+.place-rating-summary { color: #9b6a12; font-size: 18px; font-weight: 800; }
+.place-rate-control { display: flex; align-items: center; gap: 5px; margin-top: 7px; }
+.place-rate-control span { margin-right: 4px; color: #667085; font-size: 12px; }
+.place-rate-control button { padding: 0 2px; border: 0; background: transparent; color: #c9cdd4; font-size: 23px; cursor: pointer; }
+.place-rate-control button.selected, .place-rate-control button:hover { color: #e5a323; }
+.place-rate-control a { color: #3568c0; font-size: 12px; }
+.place-mini-map { width: 100%; height: 145px; margin-top: 17px; border: 1px solid #e6eaf0; border-radius: 10px; overflow: hidden; }
+.place-comments { padding: 16px 20px 22px; border-top: 7px solid #f5f6f8; }
+.place-comments-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.place-comments-heading h3 { margin: 0; color: #273444; font-size: 16px; }
+.place-comments-heading h3 span { color: #7c8795; font-size: 12px; }
+.place-comments-heading button { padding: 5px 8px; border: 0; background: transparent; color: #858e9b; font-size: 11px; cursor: pointer; }
+.place-comments-heading button.active { color: #244e40; font-weight: 800; }
+.comment-login-note { margin: 12px 0 8px; color: #687385; font-size: 12px; }
+.comment-login-note a { color: #3568c0; }
+.guest-comment-fields { display: flex; gap: 7px; margin-top: 12px; }
+.guest-comment-fields input { width: 50%; min-width: 0; height: 35px; padding: 0 9px; border: 1px solid #dfe4ea; border-radius: 7px; font-size: 12px; }
+.place-comments textarea { width: 100%; min-height: 82px; padding: 10px; resize: vertical; border: 1px solid #dfe4ea; border-radius: 8px; font: inherit; font-size: 13px; }
+.comment-compose-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 7px; }
+.comment-image-upload { position: relative; overflow: hidden; padding: 7px 10px; border: 1px solid #dfe4ea; border-radius: 7px; color: #596579; font-size: 11px; cursor: pointer; }
+.comment-image-upload input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.comment-compose-footer > button { padding: 8px 17px; border: 0; border-radius: 7px; background: #244e40; color: #fff; font-weight: 700; cursor: pointer; }
+.comment-error { color: #c43b47; font-size: 12px; }
+.no-comments { padding: 25px 0; color: #6c7786; text-align: center; font-size: 13px; }
+.no-comments small { display: inline-block; margin-top: 5px; color: #98a1af; }
+.place-comment { padding: 14px 0; border-top: 1px solid #edf0f3; }
+.place-comment-top { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.place-comment-top strong { color: #344054; }
+.place-comment-top span { color: #b47b16; font-weight: 700; }
+.place-comment-top time { margin-left: auto; color: #98a1af; }
+.place-comment p { margin: 9px 0; color: #515d6d; font-size: 13px; line-height: 1.5; white-space: pre-line; }
+.place-comment-images { display: flex; gap: 6px; overflow-x: auto; }
+.place-comment-images img { width: 72px; height: 72px; border-radius: 7px; object-fit: cover; }
+.comment-like { margin-top: 8px; padding: 4px 8px; border: 1px solid #e3e7eb; border-radius: 999px; background: white; color: #667085; font-size: 11px; cursor: pointer; }
+.comment-like.liked { border-color: #f0c6cc; background: #fff3f4; color: #c14353; }
+
+@@media (max-width: 760px) {
+    .place-detail-panel { width: min(92vw, 390px); }
 }
 
 .district-map-label {
@@ -599,3 +678,4 @@
         font-size: 12px;
     }
 }
+

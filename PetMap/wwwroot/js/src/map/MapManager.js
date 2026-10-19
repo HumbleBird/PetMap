@@ -1,7 +1,7 @@
 import { loadKakao } from '../loaders/kakaoLoader.js';
 import { getMarkerColor, markerImageByColor } from '../markers/markerFactory.js';
-import { createPlaceInfoWindow } from './placeInfoWindow.js';
 import { createThumbnailOverlay } from './thumbnailOverlay.js';
+import { createRatingOverlay } from './ratingOverlay.js';
 
 const THUMBNAIL_LEVEL = 4;
 const ANYANG_UNIVERSITY_CENTER = { latitude: 37.3911593, longitude: 126.9197963 };
@@ -12,7 +12,7 @@ let placeItems = [];
 let externalSearchMarker = null;
 
 // Kakao 지도를 만들고 장소 마커, 정보창, 썸네일을 연결한다.
-export async function initMap(places = [], options = {}) {
+export async function initMap(places = [], options = {}, placeSelectedCallback = null) {
     if (!options.appKey) {
         throw new Error('Kakao appKey 필요: options.appKey');
     }
@@ -32,10 +32,9 @@ export async function initMap(places = [], options = {}) {
         level: options.level ?? 5
     });
 
-    const infoWindow = createPlaceInfoWindow(kakao);
     currentMap = map;
     // 각 장소의 마커와 썸네일을 만들어 관리 목록에 보관한다.
-    placeItems = (places ?? []).map(place => createPlaceItem(kakao, map, place, infoWindow));
+    placeItems = (places ?? []).map(place => createPlaceItem(kakao, map, place, placeSelectedCallback));
 
     // 안양시 만안구와 동안구 행정경계를 지도에 표시한다.
     await drawAnyangDistricts(kakao, map);
@@ -126,7 +125,7 @@ function getRingCenter(ring) {
 }
 
 // 장소 하나에 마커, 클릭 이벤트, 썸네일 오버레이를 연결한다.
-function createPlaceItem(kakao, map, place, infoWindow) {
+function createPlaceItem(kakao, map, place, placeSelectedCallback) {
     const position = new kakao.maps.LatLng(place.latitude, place.longitude);
     // 장소는 여러 카테고리를 가질 수 있으므로 마커 색상은 첫 카테고리로 정한다.
     const categories = String(place.category ?? '')
@@ -138,17 +137,59 @@ function createPlaceItem(kakao, map, place, infoWindow) {
         image: markerImageByColor(kakao, getMarkerColor(categories[0])),
         title: place.name ?? ''
     });
+    const ratingOverlay = createRatingOverlay(kakao, place, position);
 
     marker.setMap(map);
-    kakao.maps.event.addListener(marker, 'click', () => infoWindow.open(map, marker, place));
-
-    return {
+    if (place.ratingCount > 0) ratingOverlay.setMap(map);
+    const item = {
         marker,
+        place,
         overlay: createThumbnailOverlay(kakao, place, position),
+        ratingOverlay,
         placeName: place.name ?? '',
         categories,
         visible: true
     };
+
+    kakao.maps.event.addListener(marker, 'click', () => {
+        if (!placeSelectedCallback) {
+            console.error('장소 상세 패널 콜백이 연결되지 않았습니다.');
+            return;
+        }
+        placeSelectedCallback.invokeMethodAsync('OnMapPlaceSelected', Number(place.id))
+            .catch(error => console.error('장소 상세 정보를 열지 못했습니다.', error));
+    });
+
+    return item;
+}
+
+// 상세 패널을 열어 지도 폭이 바뀐 뒤 기존 지도 타일을 다시 배치한다.
+export function relayoutMap() {
+    if (currentMap) currentMap.relayout();
+}
+
+// 상세 패널에서 별점을 저장한 뒤 마커 배지에도 새 평균을 갱신한다.
+export function updatePlaceRating(placeId, summary) {
+    const item = placeItems.find(entry => Number(entry.place.id) === Number(placeId));
+    if (!item) return;
+    item.ratingOverlay.update(summary);
+    item.ratingOverlay.setMap(item.visible && summary.ratingCount > 0 ? currentMap : null);
+}
+
+// 상세 패널 안에 선택한 장소만 표시하는 작은 위치 지도를 만든다.
+export async function renderPlaceMiniMap(latitude, longitude, elementId, appKey) {
+    const kakao = await loadKakao(appKey, { autoload: false });
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    const position = new kakao.maps.LatLng(latitude, longitude);
+    const miniMap = new kakao.maps.Map(element, {
+        center: position,
+        level: 3,
+        draggable: false,
+        scrollwheel: false,
+        disableDoubleClick: true
+    });
+    new kakao.maps.Marker({ map: miniMap, position });
 }
 
 // 확대 수준과 필터 상태에 따라 썸네일을 표시하거나 숨긴다.
@@ -174,6 +215,7 @@ export function filterCategories(categories = [], showAll = false) {
         item.visible = showAll || item.categories.some(category => selectedCategories.has(category));
         item.marker.setMap(item.visible ? currentMap : null);
         item.overlay?.setMap(item.visible && showThumbnails ? currentMap : null);
+        item.ratingOverlay?.setMap(item.visible && item.place.ratingCount > 0 ? currentMap : null);
     });
 }
 

@@ -21,6 +21,8 @@ public class Place
     // 식당의 구체적인 종류(예: 한식, 중식, 주점)
     public string? RestaurantType { get; set; }
 
+    public string? Menu { get; set; }
+
     public string? Phone { get; set; }
 
     public string? PetEntryCriteria { get; set; }
@@ -36,4 +38,6 @@ public class Place
     public string? Review { get; set; }
 
     public string? Memo { get; set; }
+
+    public ICollection<PlaceRating> Ratings { get; set; } = new List<PlaceRating>();
 }

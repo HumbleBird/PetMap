@@ -48,6 +48,9 @@ function createContent(place) {
     appendRow(card, '영업시간', place.businessHours);
     appendRow(card, '반려동물 출입 기준', place.petEntryCriteria || place.petPolicy);
     appendRow(card, '안내', place.description);
+    if (place.ratingCount > 0) {
+        appendRow(card, '평균 별점', `★ ${Number(place.averageRating).toFixed(1)} (${place.ratingCount}명)`);
+    }
 
     return card;
 }

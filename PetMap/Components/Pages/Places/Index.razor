@@ -109,6 +109,11 @@ else
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">메뉴 (음식점)</label>
+                        <InputTextArea class="form-control" rows="4" @bind-Value="editingPlace.Menu" />
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">전화번호</label>
                         <InputText class="form-control" @bind-Value="editingPlace.Phone" />
                     </div>
@@ -250,6 +255,7 @@ else
         Longitude = place.Longitude,
         Category = place.Category,
         RestaurantType = place.RestaurantType,
+        Menu = place.Menu,
         Phone = place.Phone,
         PetEntryCriteria = place.PetEntryCriteria,
         Description = place.Description,

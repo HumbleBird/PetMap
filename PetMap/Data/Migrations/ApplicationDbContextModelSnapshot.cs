@@ -102,12 +102,10 @@ namespace PetMap.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ProviderKey")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
@@ -121,23 +119,6 @@ namespace PetMap.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("AspNetUserLogins", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserPasskey<string>", b =>
-                {
-                    b.Property<byte[]>("CredentialId")
-                        .HasMaxLength(1024)
-                        .HasColumnType("varbinary(1024)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("CredentialId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AspNetUserPasskeys", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -161,12 +142,10 @@ namespace PetMap.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LoginProvider")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
@@ -213,8 +192,7 @@ namespace PetMap.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
@@ -261,15 +239,6 @@ namespace PetMap.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PetEntryCriteria")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RestaurantType")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
@@ -285,6 +254,9 @@ namespace PetMap.Migrations
                     b.Property<string>("Memo")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Menu")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -293,6 +265,15 @@ namespace PetMap.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Nickname")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PetEntryCriteria")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RestaurantType")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Review")
@@ -304,6 +285,90 @@ namespace PetMap.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Places");
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GuestPasswordHash")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ImagePathsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("LikesCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PlaceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PlaceId", "CreatedAt");
+
+                    b.ToTable("PlaceComments");
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceCommentLike", b =>
+                {
+                    b.Property<int>("CommentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("CommentId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PlaceCommentLikes");
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceFavorite", b =>
+                {
+                    b.Property<int>("PlaceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PlaceId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PlaceFavorites");
                 });
 
             modelBuilder.Entity("PetMap.Data.Entities.PlaceImage", b =>
@@ -326,6 +391,41 @@ namespace PetMap.Migrations
                     b.HasIndex("PlaceId");
 
                     b.ToTable("PlaceImages");
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceRating", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PlaceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PlaceId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("PlaceRatings", t =>
+                        {
+                            t.HasCheckConstraint("CK_PlaceRatings_Score_Range", "[Score] >= 1 AND [Score] <= 5");
+                        });
                 });
 
             modelBuilder.Entity("PetMap.Data.Entities.PlaceReport", b =>
@@ -428,57 +528,6 @@ namespace PetMap.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserPasskey<string>", b =>
-                {
-                    b.HasOne("PetMap.Data.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.OwnsOne("Microsoft.AspNetCore.Identity.IdentityPasskeyData", "Data", b1 =>
-                        {
-                            b1.Property<byte[]>("IdentityUserPasskeyCredentialId");
-
-                            b1.Property<byte[]>("AttestationObject")
-                                .IsRequired();
-
-                            b1.Property<byte[]>("ClientDataJson")
-                                .IsRequired();
-
-                            b1.Property<DateTimeOffset>("CreatedAt");
-
-                            b1.Property<bool>("IsBackedUp");
-
-                            b1.Property<bool>("IsBackupEligible");
-
-                            b1.Property<bool>("IsUserVerified");
-
-                            b1.Property<string>("Name");
-
-                            b1.Property<byte[]>("PublicKey")
-                                .IsRequired();
-
-                            b1.Property<long>("SignCount");
-
-                            b1.PrimitiveCollection<string>("Transports");
-
-                            b1.HasKey("IdentityUserPasskeyCredentialId");
-
-                            b1.ToTable("AspNetUserPasskeys");
-
-                            b1
-                                .ToJson("Data")
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.WithOwner()
-                                .HasForeignKey("IdentityUserPasskeyCredentialId");
-                        });
-
-                    b.Navigation("Data")
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -503,6 +552,50 @@ namespace PetMap.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceComment", b =>
+                {
+                    b.HasOne("PetMap.Data.Entities.Place", null)
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PetMap.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceCommentLike", b =>
+                {
+                    b.HasOne("PetMap.Data.Entities.PlaceComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PetMap.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceFavorite", b =>
+                {
+                    b.HasOne("PetMap.Data.Entities.Place", null)
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PetMap.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PetMap.Data.Entities.PlaceImage", b =>
                 {
                     b.HasOne("PetMap.Data.Entities.Place", "Place")
@@ -512,6 +605,28 @@ namespace PetMap.Migrations
                         .IsRequired();
 
                     b.Navigation("Place");
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceRating", b =>
+                {
+                    b.HasOne("PetMap.Data.Entities.Place", "Place")
+                        .WithMany("Ratings")
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PetMap.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Place");
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.Place", b =>
+                {
+                    b.Navigation("Ratings");
                 });
 #pragma warning restore 612, 618
         }

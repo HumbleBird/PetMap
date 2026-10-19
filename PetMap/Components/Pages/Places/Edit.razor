@@ -62,6 +62,11 @@ else
         </div>
 
         <div class="mb-3">
+            <label class="form-label">메뉴 (음식점)</label>
+            <InputTextArea class="form-control" rows="4" @bind-Value="place.Menu" />
+        </div>
+
+        <div class="mb-3">
             <label class="form-label">전화번호</label>
             <InputText class="form-control" @bind-Value="place.Phone" />
         </div>

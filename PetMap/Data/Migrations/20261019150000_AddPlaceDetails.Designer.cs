@@ -15,6 +15,7 @@ namespace PetMap.Migrations
     [Migration("20261019150000_AddPlaceDetails")]
     partial class AddPlaceDetails
     {
+        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
@@ -263,15 +264,6 @@ namespace PetMap.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PetEntryCriteria")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RestaurantType")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
@@ -295,6 +287,15 @@ namespace PetMap.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Nickname")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PetEntryCriteria")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RestaurantType")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Review")
