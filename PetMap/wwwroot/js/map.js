@@ -3,8 +3,8 @@
     markers: [],
     infoWindow: null,
 
-    init: function (places) {
-        console.log("받은 장소 데이터:", places);
+    init2: function (places) {
+        //console.log("받은 장소 데이터:", places);
 
         const container = document.getElementById("map");
 
@@ -17,7 +17,7 @@
 
         this.map = map;
 
-        console.log("카카오 지도 생성 완료");
+        //console.log("카카오 지도 생성 완료");
 
         this.createMarkers(places);
     },
@@ -48,9 +48,21 @@
             // 첫 번째 카테고리가 마커 색상을 결정
             const primaryCategory = categories[0] ?? "기타";
 
+            // 첫 번째 카테고리의 아이콘
+            const iconUrl = this.getCategoryIcon(primaryCategory);
+
+            const markerImage = new kakao.maps.MarkerImage(
+                iconUrl,
+                new kakao.maps.Size(36, 36),
+                {
+                    offset: new kakao.maps.Point(18, 36)
+                }
+            );
+
+
             // 첫 번째 카테고리의 색상으로 마커 생성
             const color = this.getCategoryColor(primaryCategory);
-            const markerImage = this.createMarkerImage(color);
+            //wconst markerImage = this.createMarkerImage(color);
 
             const marker = new kakao.maps.Marker({
                 position: position,
@@ -263,4 +275,7 @@
         );
     },
 
+    getCategoryIcon: function (category) {
+        return `/images/markers/${category}.png`;
+    },
 };

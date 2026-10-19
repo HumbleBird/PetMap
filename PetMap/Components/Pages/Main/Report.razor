@@ -115,8 +115,7 @@
                         <div class="category-grid">
 
                             @foreach (var category in Enum.GetValues(typeof(AnimalCategory))
-                                                          .Cast<AnimalCategory>()
-                                                          .Where(c => c != AnimalCategory.All))
+                                                          .Cast<AnimalCategory>())
                             {
                                 var categoryName = category.ToString();
                                 var isChecked = selectedCategories.Contains(categoryName);

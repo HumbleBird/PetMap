@@ -297,6 +297,28 @@ namespace PetMap.Migrations
                     b.ToTable("Places");
                 });
 
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PlaceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaceId");
+
+                    b.ToTable("PlaceImages");
+                });
+
             modelBuilder.Entity("PetMap.Data.Entities.PlaceReport", b =>
                 {
                     b.Property<int>("Id")
@@ -470,6 +492,17 @@ namespace PetMap.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PetMap.Data.Entities.PlaceImage", b =>
+                {
+                    b.HasOne("PetMap.Data.Entities.Place", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Place");
                 });
 #pragma warning restore 612, 618
         }

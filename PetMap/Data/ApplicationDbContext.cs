@@ -12,4 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<User> Users => Set<User>(); // Test
     public DbSet<Place> Places { get; set; }
     public DbSet<PlaceReport> PlaceReports { get; set; }
+
+    public DbSet<PlaceImage> PlaceImages => Set<PlaceImage>();
+
 }

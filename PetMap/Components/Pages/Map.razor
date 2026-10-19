@@ -33,6 +33,8 @@
 </style>
 
 @code {
+    private const string kakaoAppKey = "957bb72f70345ef9382bb74c5cb8cfbe";
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -47,12 +49,20 @@
                     p.Latitude,
                     p.Longitude,
                     p.Description,
-                    p.Category
+                    p.Category,
+
+                    // 해당 장소의 대표 이미지 경로
+                    ImageUrl = Db.PlaceImages
+                        .Where(img => img.PlaceId == p.Id)
+                        .Select(img => img.FilePath)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
+
             // JS로 전달
-            await JS.InvokeVoidAsync("petMap.init", places);
+            //await JS.InvokeVoidAsync("petMap.init", places);
+            await JS.InvokeVoidAsync("petMap.init", places, new { appKey = kakaoAppKey });
         }
     }
 
