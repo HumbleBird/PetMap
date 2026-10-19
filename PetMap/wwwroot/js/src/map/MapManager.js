@@ -93,17 +93,71 @@ export function filterCategories(categories = [], showAll = false) {
     });
 }
 
-// 카카오 로컬 장소 검색 API로 지도 주변 장소를 검색한다.
-export function searchKakaoPlaces(keyword) {
+// 여러 선택 조건을 각각 카카오에 검색하고 중복 장소를 합친다.
+export async function searchKakaoPlaces(keyword, filters = []) {
     if (!window.kakao?.maps?.services) {
         return Promise.reject(new Error('카카오 장소 검색 서비스를 사용할 수 없습니다.'));
     }
 
+    const requests = filters.length === 0
+        ? [searchKakaoCategory(keyword, null, null)]
+        : filters.flatMap(filter => {
+            const subcategories = filter.subcategories?.length ? filter.subcategories : [null];
+            return subcategories.map(subcategory =>
+                searchKakaoCategory(keyword, filter.category, subcategory));
+        });
+
+    const resultSets = await Promise.all(requests);
+    const uniquePlaces = new Map();
+    resultSets.flat().forEach(place => {
+        const key = place.placeUrl || `${place.name}:${place.latitude}:${place.longitude}`;
+        if (!uniquePlaces.has(key)) uniquePlaces.set(key, place);
+    });
+    return [...uniquePlaces.values()].slice(0, 15);
+}
+
+// Kakao가 제공하는 대분류 코드와 세부 종류 검색어를 함께 사용한다.
+function searchKakaoCategory(keyword, category, subtype) {
     const service = new window.kakao.maps.services.Places();
+    const categoryGroupCodeByType = {
+        DogCafe: 'CE7',
+        BakeryCafe: 'CE7',
+        Restaurant: 'FD6',
+        Accommodation: 'AD5',
+        PetHotel: 'AD5',
+        Park: 'AT4',
+        Hospital: 'HP8'
+    };
+    const categoryGroupCode = category === 'ShoppingAndCulture'
+        ? (subtype === '전시회' ? 'CT1' : subtype ? 'MT1' : undefined)
+        : categoryGroupCodeByType[category];
+    const searchHints = {
+        DogCafe: '애견 카페 운동장',
+        BakeryCafe: '애견 동반 카페 베이커리',
+        Restaurant: '음식점',
+        Accommodation: '숙소',
+        Studio: '사진관 스튜디오',
+        ShoppingAndCulture: '쇼핑 문화시설',
+        Park: '공원',
+        Hospital: '동물병원',
+        GroomingShop: '애견 미용실',
+        PetSupplyShop: '애견용품 반려동물 용품점',
+        DayCare: '애견 유치원 데이케어',
+        PetHotel: '애견 호텔',
+        TrainingCenter: '반려견 훈련소 행동 교정',
+        SelfWash: '애견 셀프 목욕',
+        PetTaxi: '펫택시',
+        FuneralService: '반려동물 장례 추모'
+    };
+    const needsSpecificKeyword = ['DogCafe', 'BakeryCafe', 'Hospital', 'PetHotel'].includes(category);
+    const queryPrefix = subtype ?? ((categoryGroupCode && !needsSpecificKeyword)
+        ? ''
+        : searchHints[category] ?? '');
+    const query = queryPrefix ? `${queryPrefix} ${keyword}` : keyword;
     return new Promise((resolve, reject) => {
-        service.keywordSearch(keyword, (data, status) => {
+        service.keywordSearch(query, (data, status) => {
             if (status === window.kakao.maps.services.Status.OK) {
-                resolve(data.map(place => ({
+                let results = data.map(place => ({
                     name: place.place_name,
                     address: place.address_name,
                     roadAddress: place.road_address_name,
@@ -112,14 +166,31 @@ export function searchKakaoPlaces(keyword) {
                     category: place.category_name,
                     phone: place.phone,
                     placeUrl: place.place_url
-                })));
+                }));
+
+                resolve(results);
             } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
                 resolve([]);
             } else {
                 reject(new Error('카카오 장소 검색에 실패했습니다.'));
             }
-        }, { size: 6 });
+        }, { size: 15, ...(categoryGroupCode ? { category_group_code: categoryGroupCode } : {}) });
     });
+}
+
+// 위임 이벤트를 사용해 뒤늦게 렌더링된 하위 카테고리에도 휠 이동을 적용한다.
+let searchWheelBound = false;
+export function enableSearchCategoryWheel() {
+    if (searchWheelBound) return;
+    searchWheelBound = true;
+    document.addEventListener('wheel', event => {
+        const element = event.target.closest?.('.map-search-categories, .map-search-subcategories');
+        if (!element || element.scrollWidth <= element.clientWidth) return;
+        const delta = Math.abs(event.deltaY) > Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+        if (delta === 0) return;
+        element.scrollLeft += delta;
+        event.preventDefault();
+    }, { passive: false });
 }
 
 // 카카오 검색 결과를 선택하면 별도 검색 마커를 놓고 해당 위치로 이동한다.

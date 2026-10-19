@@ -5,19 +5,22 @@ import {
     initMap,
     filterCategories,
     searchKakaoPlaces,
-    moveToKakaoPlace
+    moveToKakaoPlace,
+    enableSearchCategoryWheel
 } from './src/map/MapManager.js';
 
 export async function init(places, options = {}) {
-    return await initMap(places, options);
+    const result = await initMap(places, options);
+    enableSearchCategoryWheel();
+    return result;
 }
 
 export function applyCategoryFilter(categories, showAll) {
     filterCategories(categories, showAll);
 }
 
-export function searchPlaces(keyword) {
-    return searchKakaoPlaces(keyword);
+export function searchPlaces(keyword, filters) {
+    return searchKakaoPlaces(keyword, filters);
 }
 
 export function moveToPlace(place) {

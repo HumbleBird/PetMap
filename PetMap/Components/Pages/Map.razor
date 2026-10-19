@@ -103,17 +103,55 @@
 
 <div class="map-canvas-wrap">
     <div class="map-search" role="search">
-        <span class="map-search-icon" aria-hidden="true">⌕</span>
-        <input type="search"
-               placeholder="장소 이름이나 주소를 검색하세요"
-               aria-label="장소 검색"
-               autocomplete="off"
-               @bind="searchKeyword"
-               @bind:event="oninput"
-               @bind:after="SearchPlacesAsync" />
-        @if (!string.IsNullOrWhiteSpace(searchKeyword))
+        <div class="map-search-input-row">
+            <span class="map-search-icon" aria-hidden="true">⌕</span>
+            <input type="search"
+                   placeholder="장소 이름이나 주소를 검색하세요"
+                   aria-label="장소 검색"
+                   autocomplete="off"
+                   @bind="searchKeyword"
+                   @bind:event="oninput"
+                   @bind:after="SearchPlacesAsync" />
+            @if (!string.IsNullOrWhiteSpace(searchKeyword))
+            {
+                <button type="button" class="search-clear" aria-label="검색어 지우기" @onclick="ClearSearch">×</button>
+            }
+        </div>
+        <div class="map-search-categories" aria-label="검색 카테고리">
+            <button type="button"
+                    class="@(selectedSearchCategories.Count == 0 ? "active" : "")"
+                    aria-pressed="@(selectedSearchCategories.Count == 0)"
+                    @onclick="ClearSearchCategories">전체</button>
+            @foreach (var category in Enum.GetValues<AnimalCategory>())
+            {
+                <button type="button"
+                        @key="category"
+                        class="@(selectedSearchCategories.Contains(category) ? "active" : "")"
+                        aria-pressed="@selectedSearchCategories.Contains(category)"
+                        @onclick="() => ToggleSearchCategory(category)">@GetSearchCategoryLabel(category)</button>
+            }
+        </div>
+        @foreach (var category in Enum.GetValues<AnimalCategory>()
+            .Where(category => selectedSearchCategories.Contains(category)
+                && GetSearchSubcategories(category).Length > 0))
         {
-            <button type="button" class="search-clear" aria-label="검색어 지우기" @onclick="ClearSearch">×</button>
+            <div class="map-search-subcategory-group" @key="category">
+                <span>@GetSearchCategoryLabel(category)</span>
+                <div class="map-search-subcategories" aria-label="@($"{GetSearchCategoryLabel(category)} 세부 카테고리")">
+                <button type="button"
+                        class="@(!HasSelectedSubcategories(category) ? "active" : "")"
+                        aria-pressed="@(!HasSelectedSubcategories(category))"
+                        @onclick="() => ClearSearchSubcategories(category)">전체</button>
+                @foreach (var subtype in GetSearchSubcategories(category))
+                {
+                    <button type="button"
+                            @key="subtype"
+                            class="@(IsSearchSubtypeSelected(category, subtype) ? "active" : "")"
+                            aria-pressed="@IsSearchSubtypeSelected(category, subtype)"
+                            @onclick="() => ToggleSearchSubtype(category, subtype)">@subtype</button>
+                }
+                </div>
+            </div>
         }
 
         @if (searchResults.Count > 0)
@@ -125,7 +163,7 @@
                         <span class="result-pin" aria-hidden="true">●</span>
                         <span class="result-copy">
                             <strong>@place.Name</strong>
-                            <small>@(string.IsNullOrWhiteSpace(place.RoadAddress) ? place.Address : place.RoadAddress)</small>
+                            <small>@place.Category · @(string.IsNullOrWhiteSpace(place.RoadAddress) ? place.Address : place.RoadAddress)</small>
                         </span>
                     </button>
                 }
@@ -148,14 +186,25 @@
     .map-canvas-wrap { position: relative; }
     .map-search {
         position: absolute; z-index: 5; top: 18px; left: 50%; transform: translateX(-50%);
-        display: flex; align-items: center; width: min(520px, calc(100% - 32px)); min-height: 54px;
-        padding: 0 14px; border: 1px solid rgba(38, 60, 102, .12); border-radius: 16px;
+        display: flex; flex-direction: column; width: min(620px, calc(100% - 32px));
+        padding: 0 14px 10px; border: 1px solid rgba(38, 60, 102, .12); border-radius: 16px;
         background: #fff; box-shadow: 0 8px 28px rgba(24, 39, 75, .18);
     }
+    .map-search-input-row { display: flex; align-items: center; min-height: 54px; }
     .map-search-icon { color: #263c66; font-size: 27px; line-height: 1; margin-right: 11px; }
     .map-search input { flex: 1; min-width: 0; height: 50px; border: 0; outline: 0; background: transparent; color: #202938; font-size: 15px; }
     .map-search input::placeholder { color: #98a1af; }
     .search-clear { border: 0; border-radius: 50%; width: 28px; height: 28px; background: #f0f2f5; color: #667085; font-size: 20px; cursor: pointer; }
+    .map-search-categories { display: flex; gap: 7px; overflow-x: auto; padding: 0 0 7px; scrollbar-width: thin; scrollbar-color: #aab4c4 #edf0f4; }
+    .map-search-categories::-webkit-scrollbar, .map-search-subcategories::-webkit-scrollbar { height: 7px; }
+    .map-search-categories::-webkit-scrollbar-track, .map-search-subcategories::-webkit-scrollbar-track { border-radius: 8px; background: #edf0f4; }
+    .map-search-categories::-webkit-scrollbar-thumb, .map-search-subcategories::-webkit-scrollbar-thumb { border-radius: 8px; background: #aab4c4; }
+    .map-search-categories button, .map-search-subcategories button { flex: 0 0 auto; padding: 6px 11px; border: 1px solid #e7eaf0; border-radius: 999px; background: #fff; color: #667085; font-size: 12px; cursor: pointer; }
+    .map-search-categories button.active, .map-search-subcategories button.active { border-color: #263c66; background: #263c66; color: #fff; font-weight: 600; }
+    .map-search-subcategory-group { display: flex; align-items: center; gap: 9px; min-width: 0; padding-top: 8px; }
+    .map-search-subcategory-group > span { flex: 0 0 auto; color: #596579; font-size: 11px; font-weight: 700; }
+    .map-search-subcategories { display: flex; flex: 1; gap: 6px; min-width: 0; overflow-x: auto; padding: 0 0 5px; scrollbar-width: thin; scrollbar-color: #c0c8d4 #edf0f4; }
+    .map-search-subcategories button { padding: 5px 10px; background: #f5f7fa; }
     .map-search-results, .map-search-empty {
         position: absolute; top: calc(100% + 8px); left: 0; right: 0; overflow: hidden;
         border: 1px solid #e8ebf0; border-radius: 14px; background: #fff; box-shadow: 0 12px 30px rgba(24, 39, 75, .16);
@@ -171,7 +220,7 @@
 
     @@media (max-width: 480px) {
         #map { height: 70vh; min-height: 480px; }
-        .map-search { top: 12px; min-height: 50px; }
+        .map-search { top: 12px; }
         .map-search input { height: 46px; font-size: 14px; }
     }
 
@@ -603,24 +652,29 @@
     private IJSObjectReference? _mapModule;
 
     private string searchKeyword = "";
+    private HashSet<AnimalCategory> selectedSearchCategories = new();
+    private Dictionary<AnimalCategory, HashSet<string>> selectedSearchSubcategories = new();
     private List<KakaoSearchPlace> searchResults = new();
     private CancellationTokenSource? searchDebounce;
 
     private async Task SearchPlacesAsync()
     {
-        searchDebounce?.Cancel();
-        searchDebounce?.Dispose();
+        CancelPendingSearch();
         searchResults.Clear();
         var keyword = searchKeyword.Trim();
         if (keyword.Length < 2 || _mapModule is null) return;
 
-        var debounce = searchDebounce = new CancellationTokenSource();
+        using var debounce = new CancellationTokenSource();
+        searchDebounce = debounce;
+        var filters = BuildSearchFilters();
+        var filterKey = GetSearchFilterKey();
         try
         {
             await Task.Delay(350, debounce.Token);
             var results = await _mapModule.InvokeAsync<List<KakaoSearchPlace>>(
-                "searchPlaces", keyword);
-            if (!debounce.IsCancellationRequested && keyword == searchKeyword.Trim())
+                "searchPlaces", keyword, filters);
+            if (!debounce.IsCancellationRequested && keyword == searchKeyword.Trim()
+                && filterKey == GetSearchFilterKey())
             {
                 searchResults = results ?? new List<KakaoSearchPlace>();
             }
@@ -630,13 +684,121 @@
         {
             if (!debounce.IsCancellationRequested) searchResults.Clear();
         }
+        finally
+        {
+            // 현재 요청이 아직 최신 요청일 때만 공유 참조를 비운다.
+            if (ReferenceEquals(searchDebounce, debounce))
+            {
+                searchDebounce = null;
+            }
+        }
     }
+
+    private Task ToggleSearchCategory(AnimalCategory category)
+    {
+        if (!selectedSearchCategories.Add(category))
+        {
+            selectedSearchCategories.Remove(category);
+            selectedSearchSubcategories.Remove(category);
+        }
+        return SearchPlacesAsync();
+    }
+
+    private Task ClearSearchCategories()
+    {
+        selectedSearchCategories.Clear();
+        selectedSearchSubcategories.Clear();
+        return SearchPlacesAsync();
+    }
+
+    private Task ToggleSearchSubtype(AnimalCategory category, string subtype)
+    {
+        if (!selectedSearchSubcategories.TryGetValue(category, out var selected))
+        {
+            selected = new HashSet<string>();
+            selectedSearchSubcategories[category] = selected;
+        }
+
+        if (!selected.Add(subtype)) selected.Remove(subtype);
+        if (selected.Count == 0) selectedSearchSubcategories.Remove(category);
+        return SearchPlacesAsync();
+    }
+
+    private Task ClearSearchSubcategories(AnimalCategory category)
+    {
+        selectedSearchSubcategories.Remove(category);
+        return SearchPlacesAsync();
+    }
+
+    private bool HasSelectedSubcategories(AnimalCategory category) =>
+        selectedSearchSubcategories.TryGetValue(category, out var selected) && selected.Count > 0;
+
+    private bool IsSearchSubtypeSelected(AnimalCategory category, string subtype) =>
+        selectedSearchSubcategories.TryGetValue(category, out var selected) && selected.Contains(subtype);
+
+    private List<SearchCategoryFilter> BuildSearchFilters() => selectedSearchCategories
+        .Select(category => new SearchCategoryFilter
+        {
+            Category = category.ToString(),
+            Subcategories = selectedSearchSubcategories.TryGetValue(category, out var selected)
+                ? selected.ToList()
+                : new List<string>()
+        })
+        .ToList();
+
+    private string GetSearchFilterKey() => string.Join("|", Enum.GetValues<AnimalCategory>()
+        .Where(selectedSearchCategories.Contains)
+        .Select(category => $"{category}:{string.Join(",", selectedSearchSubcategories.TryGetValue(category, out var selected) ? selected.OrderBy(value => value) : Enumerable.Empty<string>())}"));
+
+    private static string GetSearchCategoryLabel(AnimalCategory category) => category switch
+    {
+        AnimalCategory.DogCafe => "애견 카페/운동장",
+        AnimalCategory.BakeryCafe => "동반 카페/베이커리",
+        AnimalCategory.Restaurant => "레스토랑",
+        AnimalCategory.Accommodation => "숙소",
+        AnimalCategory.Studio => "사진관/스튜디오",
+        AnimalCategory.ShoppingAndCulture => "쇼핑/문화",
+        AnimalCategory.Park => "공원",
+        AnimalCategory.Hospital => "동물병원",
+        AnimalCategory.GroomingShop => "미용실",
+        AnimalCategory.PetSupplyShop => "반려동물 용품점",
+        AnimalCategory.DayCare => "유치원/데이케어",
+        AnimalCategory.PetHotel => "애견 호텔",
+        AnimalCategory.TrainingCenter => "훈련소",
+        AnimalCategory.SelfWash => "셀프 목욕",
+        AnimalCategory.PetTaxi => "펫택시",
+        AnimalCategory.FuneralService => "장례/추모 시설",
+        _ => category.ToString()
+    };
+
+    private static string[] GetSearchSubcategories(AnimalCategory category) => category switch
+    {
+        AnimalCategory.Restaurant => ["한식", "일식", "중식", "양식", "분식", "주점"],
+        AnimalCategory.Accommodation => ["펜션", "호텔", "글램핑"],
+        AnimalCategory.ShoppingAndCulture => ["쇼핑몰", "전시회", "아울렛"],
+        _ => Array.Empty<string>()
+    };
 
     private void ClearSearch()
     {
         searchKeyword = "";
         searchResults.Clear();
-        searchDebounce?.Cancel();
+        CancelPendingSearch();
+    }
+
+    private void CancelPendingSearch()
+    {
+        var pendingSearch = searchDebounce;
+        searchDebounce = null;
+
+        try
+        {
+            pendingSearch?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // 요청이 끝나는 순간 토큰이 해제됐으면 취소할 작업이 없다.
+        }
     }
 
     private async Task FocusPlace(KakaoSearchPlace place)
@@ -659,5 +821,11 @@
         public string Category { get; set; } = "";
         public string Phone { get; set; } = "";
         public string PlaceUrl { get; set; } = "";
+    }
+
+    private sealed class SearchCategoryFilter
+    {
+        public string Category { get; set; } = "";
+        public List<string> Subcategories { get; set; } = new();
     }
 }
