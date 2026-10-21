@@ -155,6 +155,16 @@ h1:focus {
 .account-intro small { color: #8a96a4; font-size: 14px; }
 .account-auth-section { padding: 25px 0 22px; border-bottom: 1px solid #e5eaf0; }
 .account-auth-section h2 { margin: 0 0 18px; font-size: 22px; font-weight: 800; }
+.account-manage-section { padding-bottom: 30px; }
+.account-manage-section > h2 { margin: 0 0 14px; font-size: 18px; font-weight: 800; }
+.account-manage-nav-list { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 22px; padding: 0; list-style: none; }
+.account-manage-nav-link { display: inline-flex; align-items: center; min-height: 37px; padding: 7px 13px; border: 1px solid #e2e8ee; border-radius: 999px; background: #fff; color: #647181; font-size: 13px; font-weight: 700; text-decoration: none; }
+.account-manage-nav-link.active { border-color: #244e40; background: #244e40; color: #fff; }
+.account-manage-panel { max-width: 680px; }
+.account-manage-panel h3 { margin: 0 0 16px; color: #202a35; font-size: 20px; font-weight: 800; }
+.account-manage-panel .form-floating { margin-bottom: 14px !important; }
+.account-manage-panel .form-control { min-height: 44px; border-color: #d5dde6; border-radius: 10px; }
+.account-manage-panel .btn-primary { width: auto !important; min-height: 44px; border: 0; border-radius: 10px; background: #278be8; font-weight: 800; }
 .account-section-description { margin: -7px 0 12px; color: #8a96a4; font-size: 14px; }
 .account-form { display: flex; flex-direction: column; align-items: flex-start; gap: 13px; }
 .account-form .validation-summary-valid { display: none; }

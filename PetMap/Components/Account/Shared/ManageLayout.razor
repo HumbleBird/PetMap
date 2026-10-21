@@ -1,17 +1,24 @@
-﻿@inherits LayoutComponentBase
-@layout PetMap.Components.Layout.MainLayout
+@inherits LayoutComponentBase
+@layout PetMap.Components.Layout.AccountLayout
 
-<h1>Manage your account</h1>
+<div class="account-content account-manage-content">
+    <h1 class="account-page-title">설정</h1>
 
-<div>
-    <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
-        <div class="col-lg-3">
+    <section class="account-intro" aria-label="계정 안내">
+        <span class="account-intro-icon" aria-hidden="true">◎</span>
+        <span>
+            <strong>계정</strong>
+            <small>닉네임, 이메일, 비밀번호와 계정 보안 설정을 관리할 수 있어요.</small>
+        </span>
+    </section>
+
+    <section class="account-auth-section account-manage-section">
+        <h2>내 계정 관리</h2>
+        <nav class="account-manage-nav" aria-label="계정 설정 메뉴">
             <ManageNavMenu />
-        </div>
-        <div class="col-lg-9">
+        </nav>
+        <div class="account-manage-panel">
             @Body
         </div>
-    </div>
+    </section>
 </div>
