@@ -1,43 +1,67 @@
-﻿@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using PetMap.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
-@inject IdentityRedirectManager RedirectManager
 
-@if (externalLogins.Length == 0)
+<div class="account-social-buttons" aria-label="소셜 로그인">
+    @foreach (var provider in socialProviders)
+    {
+        @if (provider.Scheme is not null)
+        {
+            <form class="account-social-form" action="Account/PerformExternalLogin" method="post">
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+                <button type="submit" class="account-social-button @provider.CssClass" name="provider" value="@provider.Scheme.Name">
+                    <span class="account-social-symbol" aria-hidden="true">@provider.Symbol</span>
+                    <span>@provider.Name @ModeLabel</span>
+                </button>
+            </form>
+        }
+        else
+        {
+            <div class="account-social-form">
+                <button type="button" class="account-social-button @provider.CssClass" disabled title="소셜 로그인 공급자 설정이 필요합니다.">
+                    <span class="account-social-symbol" aria-hidden="true">@provider.Symbol</span>
+                    <span>@provider.Name @ModeLabel</span>
+                </button>
+            </div>
+        }
+    }
+</div>
+@if (!hasSocialProvider)
 {
-    <div>
-        <p>
-            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
-            about setting up this ASP.NET application to support logging in via external services</a>.
-        </p>
-    </div>
-}
-else
-{
-    <form class="form-horizontal" action="Account/PerformExternalLogin" method="post">
-        <div>
-            <AntiforgeryToken />
-            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
-            <p>
-                @foreach (var provider in externalLogins)
-                {
-                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
-                }
-            </p>
-        </div>
-    </form>
+    <p class="account-social-note">카카오·네이버 로그인을 사용하려면 OAuth 설정이 필요합니다.</p>
 }
 
 @code {
-    private AuthenticationScheme[] externalLogins = [];
+    [Parameter] public string Mode { get; set; } = "login";
 
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
+    [Parameter] public string? ReturnUrl { get; set; }
+
+    private AuthenticationScheme[] externalLogins = [];
+    private List<SocialProviderButton> socialProviders = new();
+    private bool hasSocialProvider;
+    private string ModeLabel => Mode == "register" ? "회원가입" : "로그인";
 
     protected override async Task OnInitializedAsync()
     {
         externalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToArray();
+        socialProviders = new()
+        {
+            CreateProviderButton("Kakao", "카카오", "K", "kakao"),
+            CreateProviderButton("Naver", "네이버", "N", "naver")
+        };
+        hasSocialProvider = socialProviders.Any(provider => provider.Scheme is not null);
     }
+
+    private SocialProviderButton CreateProviderButton(string key, string label, string symbol, string cssClass)
+    {
+        var scheme = externalLogins.FirstOrDefault(item =>
+            item.Name.Contains(key, StringComparison.OrdinalIgnoreCase)
+            || (item.DisplayName?.Contains(key, StringComparison.OrdinalIgnoreCase) ?? false));
+        return new SocialProviderButton(label, symbol, cssClass, scheme);
+    }
+
+    private sealed record SocialProviderButton(string Name, string Symbol, string CssClass, AuthenticationScheme? Scheme);
 }

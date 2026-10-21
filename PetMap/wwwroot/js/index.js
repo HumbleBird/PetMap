@@ -42,3 +42,12 @@ export function updatePlaceRating(placeId, summary) {
     updateMapPlaceRating(placeId, summary);
 }
 
+export async function sharePlace(title, text, url) {
+    if (navigator.share) {
+        await navigator.share({ title, text, url });
+        return;
+    }
+
+    await navigator.clipboard.writeText(url);
+}
+

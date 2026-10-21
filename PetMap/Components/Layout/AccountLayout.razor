@@ -1,0 +1,37 @@
+@inherits LayoutComponentBase
+
+<div class="account-site">
+    <header class="account-topbar">
+        <div class="account-topbar-inner">
+            <a class="account-brand" href="/" aria-label="댕동여지도 홈">
+                <span class="account-brand-mark">댕</span>
+                <span>댕동여지도</span>
+            </a>
+            <nav class="account-topnav" aria-label="주요 메뉴">
+                <a href="/map"><span aria-hidden="true">⌖</span> 지도</a>
+                <a href="/map"><span aria-hidden="true">♡</span> 장소 제보</a>
+                <a class="active" href="/Account/Login"><span aria-hidden="true">☷</span> 설정</a>
+                <AuthorizeView Roles="Admin"><Authorized><a href="/places"><span aria-hidden="true">⌂</span> 장소 관리</a></Authorized></AuthorizeView>
+            </nav>
+            <a class="account-map-shortcut" href="/map">지도 보기</a>
+        </div>
+    </header>
+
+    <main class="account-main">
+        @Body
+    </main>
+
+    <footer class="account-footer">
+        <div class="account-footer-inner">
+            <a class="account-footer-brand" href="/"><span>✿</span> 댕동여지도</a>
+            <nav class="account-footer-links" aria-label="서비스 안내">
+                <a href="/">서비스 소개</a>
+                <a href="/map">지도</a>
+                <a href="/Account/Manage/PersonalData">개인정보</a>
+                <a href="/Account/ForgotPassword">계정 지원</a>
+            </nav>
+            <small>반려동물과 함께하는 장소를 찾고 나누는 지도</small>
+            <small>© 댕동여지도</small>
+        </div>
+    </footer>
+</div>

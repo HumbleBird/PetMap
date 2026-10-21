@@ -2,22 +2,34 @@
 
 @inject ApplicationDbContext Db
 @inject IJSRuntime JS
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
 
 <!-- 제보 입력 화면은 별도 모달로 표시한다. -->
-<button class="report-button"
-        @onclick="OpenReportModal">
-    <span class="report-button-icon" aria-hidden="true">+</span>
-    <span>장소 제보</span>
-</button>
+@if (ShowTrigger)
+{
+    <button class="report-button" @onclick="OpenReportModal">
+        <span class="report-button-icon" aria-hidden="true">+</span>
+        <span>장소 제보</span>
+    </button>
+}
 
 @* 제보 작성 폼 *@
 @if (showReportModal)
 {
-    <ModalShell Title="장소 제보"
+    <ModalShell Title="@(editSuggestionMode ? "장소 정보 수정 제안" : "장소 제보")"
                 TitleId="place-report-title"
                 OnClose="ShowCheckCloseReportModal"
                 CloseOnBackdrop="false">
         <ChildContent>
+                @if (editSuggestionMode)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">장소명</label>
+                        <InputText class="form-control" @bind-Value="report.PlaceName" />
+                    </div>
+                }
+                else
+                {
                 <div class="mb-3">
 
                     <label class="form-label">
@@ -28,6 +40,7 @@
                                @bind-Value="report.Nickname" />
 
                 </div>
+                }
 
   
                 <div class="mb-3">
@@ -187,6 +200,10 @@
                     <div class="mt-2">
                         현재 @imageCount 장
                     </div>
+                    @if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        <div class="text-danger" role="alert">@errorMessage</div>
+                    }
 
                 </div>
 
@@ -202,7 +219,7 @@
                 <button class="btn btn-primary"
                         type="button"
                         @onclick="SubmitReport">
-                    등록
+                        @(editSuggestionMode ? "수정 제안 보내기" : "등록")
                 </button>
         </FooterContent>
     </ModalShell>

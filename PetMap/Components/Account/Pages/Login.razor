@@ -1,4 +1,5 @@
-﻿@page "/Account/Login"
+@page "/Account/Login"
+@layout AccountLayout
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
@@ -11,68 +12,51 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>로그인 | 댕동여지도</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-lg-6">
-        <section>
-            <StatusMessage Message="@errorMessage" />
-            <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username webauthn" aria-required="true" placeholder="name@example.com" />
-                    <label for="Input.Email" class="form-label">Email</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
+<div class="account-content">
+    <h1 class="account-page-title">설정</h1>
+    <section class="account-intro" aria-label="계정 안내">
+        <span class="account-intro-icon" aria-hidden="true">◎</span>
+        <span><strong>계정</strong><small>로그인 후 닉네임, 비밀번호, 활동 내역을 관리할 수 있어요.</small></span>
+    </section>
+
+    <section class="account-auth-section" aria-labelledby="login-title">
+        <h2 id="login-title">로그인</h2>
+        <StatusMessage Message="@errorMessage" />
+        <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login" class="account-form">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="account-validation-summary" role="alert" />
+            <div class="account-field">
+                <label for="Input.Email">아이디</label>
+            <InputText @bind-Value="Input.Email" id="Input.Email" class="account-input" autocomplete="username" aria-required="true" placeholder="로그인용 아이디" />
+                <ValidationMessage For="() => Input.Email" class="account-validation-message" />
+            </div>
+            <div class="account-field">
+                <label for="Input.Password">비밀번호</label>
+                <div class="account-password-wrap">
+                    <InputText type="@(showPassword ? "text" : "password")" @bind-Value="Input.Password" id="Input.Password" class="account-input" autocomplete="current-password" aria-required="true" placeholder="비밀번호" />
+                    <button type="button" class="password-visibility-button" aria-label="비밀번호 표시 전환" @onclick="() => showPassword = !showPassword">@(showPassword ? "숨김" : "보기")</button>
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="Input.Password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Remember me
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <hr />
-                <div class="d-flex flex-column">
-                    <span class="text-secondary mx-auto mt-2">OR</span>
-                    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="btn btn-link mx-auto">Log in with a passkey</PasskeySubmit>
-                </div>
-                <hr />
-                <div>
-                    <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">회원가입</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
-                </div>
-            </EditForm>
-        </section>
-    </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div>
+                <ValidationMessage For="() => Input.Password" class="account-validation-message" />
+            </div>
+            <div class="account-form-options">
+                <label class="account-remember"><InputCheckbox @bind-Value="Input.RememberMe" /> 로그인 상태 유지</label>
+                <a href="Account/ForgotPassword">비밀번호 찾기</a>
+            </div>
+            <button type="submit" class="account-primary-button">로그인</button>
+            <div class="account-signup-link">
+                <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">회원가입으로</a>
+            </div>
+        </EditForm>
+        <div class="account-divider"><span>또는 간편 로그인</span></div>
+        <ExternalLoginPicker ReturnUrl="@ReturnUrl" />
+    </section>
+    <AccountSettingsSection />
 </div>
-
 @code {
     private string? errorMessage;
+    private bool showPassword;
     private EditContext editContext = default!;
 
     [CascadingParameter]
@@ -90,7 +74,7 @@
 
         editContext = new EditContext(Input);
 
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        if (HttpContext is not null && HttpMethods.IsGet(HttpContext.Request.Method))
         {
             // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
@@ -99,29 +83,25 @@
 
     public async Task LoginUser()
     {
-        if (!string.IsNullOrEmpty(Input.Passkey?.Error))
+        if (!editContext.Validate())
         {
-            errorMessage = $"Error: {Input.Passkey.Error}";
             return;
         }
 
         SignInResult result;
-        if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
+        try
         {
-            // When performing passkey sign-in, don't perform form validation.
-            result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
+            // 아이디(이메일)로 계정을 찾은 뒤 Identity 사용자 이름으로 로그인한다.
+            var user = await UserManager.FindByEmailAsync(Input.Email);
+            result = user?.UserName is null
+                ? SignInResult.Failed
+                : await SignInManager.PasswordSignInAsync(user.UserName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         }
-        else
+        catch (Exception exception)
         {
-            // If doing a password sign-in, validate the form.
-            if (!editContext.Validate())
-            {
-                return;
-            }
-
-            // This doesn't count login failures towards account lockout
-            // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-            result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+            Logger.LogError(exception, "로그인 요청 처리 중 오류가 발생했습니다.");
+            errorMessage = "로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+            return;
         }
 
         if (result.Succeeded)
@@ -159,6 +139,5 @@
         [Display(Name = "Remember me?")]
         public bool RememberMe { get; set; }
 
-        public PasskeyInputModel? Passkey { get; set; }
     }
 }

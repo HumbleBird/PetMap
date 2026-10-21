@@ -1,4 +1,5 @@
 @page "/places"
+@layout AccountLayout
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
 
@@ -8,6 +9,7 @@
 @inject PetMap.Data.ApplicationDbContext Db
 
 <PageTitle>장소 관리</PageTitle>
+<div class="account-content places-admin-content">
 <h3>장소 관리</h3>
 
 @if (places is null)
@@ -187,6 +189,7 @@ else
     .category-tabs button.active { background: #263c66; color: #fff; font-weight: 600; }
     .category-selection-summary { padding: 10px 2px; color: #667085; font-size: 13px; }
 </style>
+</div>
 
 @code {
     private List<Place>? places;

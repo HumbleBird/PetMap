@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using PetMap.Components.Pages.Models;
 using PetMap.Data.Entities;
 using PetMap.Data.Utiles;
+using PetMap.Components.Pages.Main;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
@@ -21,6 +22,24 @@ namespace PetMap.Components.Pages
         private List<string> selectedPlaceImages = new();
         private List<CommentItem> placeComments = new();
         private DotNetObjectReference<Map>? _placeSelectCallback;
+        private Report? reportComponent;
+        private bool isPlaceMenuOpen;
+        private bool showTagEditor;
+        private bool showBusinessHoursEditor;
+        private bool showPlaceHistoryModal;
+        private bool showPlaceReportModal;
+        private string newPlaceTags = "";
+        private string newBusinessHours = "";
+        private string placeReportReason = "";
+        private string placeReportMessage = "";
+        private string placeContributionMessage = "";
+        private string shareMessage = "";
+        private List<IBrowserFile> placeImageFiles = new();
+        private List<PlaceReport> selectedPlaceHistory = new();
+        private List<string> selectedPlaceTags = new();
+
+        [SupplyParameterFromQuery(Name = "placeId")]
+        public int? SharedPlaceId { get; set; }
         private bool isAuthenticated;
         private bool isFavorite;
         private int currentUserRating;
@@ -98,6 +117,10 @@ namespace PetMap.Components.Pages
                     },
                     _placeSelectCallback
                 );
+
+                // 공유 링크에 장소 ID가 있으면 지도가 열린 뒤 해당 장소 패널도 바로 연다.
+                if (SharedPlaceId is int sharedPlaceId)
+                    await OnMapPlaceSelected(sharedPlaceId);
             }
 
             if (selectedPlace is not null && lastMiniMapPlaceId != selectedPlace.Id && _mapModule is not null)
@@ -114,6 +137,14 @@ namespace PetMap.Components.Pages
             if (place is null) return;
 
             selectedPlaceId = placeId;
+            isPlaceMenuOpen = false;
+            showTagEditor = false;
+            showBusinessHoursEditor = false;
+            newPlaceTags = "";
+            newBusinessHours = "";
+            placeContributionMessage = "";
+            shareMessage = "";
+            placeImageFiles.Clear();
             selectedPlace = new PlaceDetails
             {
                 Id = place.Id,
@@ -150,6 +181,17 @@ namespace PetMap.Components.Pages
                 .FirstOrDefaultAsync();
             selectedPlaceImages = await Db.PlaceImages.Where(image => image.PlaceId == placeId)
                 .Select(image => image.FilePath).ToListAsync();
+            selectedPlaceTags = await Db.PlaceReports
+                .Where(report => report.PlaceName == place.Name
+                    && report.Review == "[태그 추가]")
+                .Select(report => report.Memo)
+                .Where(tags => tags != null)
+                .Select(tags => tags!)
+                .ToListAsync();
+            selectedPlaceTags = selectedPlaceTags
+                .SelectMany(tags => (tags ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             var auth = await AuthStateProvider.GetAuthenticationStateAsync();
             var userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -163,6 +205,200 @@ namespace PetMap.Components.Pages
             commentError = "";
             // 평점/댓글을 불러온 결과를 열린 패널에 반영한다.
             await InvokeAsync(StateHasChanged);
+        }
+
+        private bool HasPlaceTags => selectedPlace is not null
+            && selectedPlaceTags.Count > 0;
+
+        private void TogglePlaceMenu() => isPlaceMenuOpen = !isPlaceMenuOpen;
+
+        private async Task OpenPlaceHistoryAsync()
+        {
+            isPlaceMenuOpen = false;
+            if (selectedPlace is null) return;
+            selectedPlaceHistory = await Db.PlaceReports
+                .Where(report => report.PlaceName == selectedPlace.Name)
+                .OrderByDescending(report => report.CreatedAt)
+                .ToListAsync();
+            showPlaceHistoryModal = true;
+        }
+
+        private static string GetReportStatusLabel(Status status) => status switch
+        {
+            Status.Pending => "검토 중",
+            Status.Approved => "승인됨",
+            Status.Rejected => "반려됨",
+            _ => status.ToString()
+        };
+
+        private async Task OpenPlaceEditSuggestionAsync()
+        {
+            isPlaceMenuOpen = false;
+            if (selectedPlace is null) return;
+            if (reportComponent is null)
+            {
+                placeContributionMessage = "제보 창을 준비하는 중입니다. 잠시 후 다시 시도해 주세요.";
+                return;
+            }
+            await reportComponent.OpenEditSuggestionAsync(selectedPlace.Id);
+        }
+
+        private async Task OpenMapReportAsync()
+        {
+            if (reportComponent is not null)
+                await reportComponent.OpenReportFromMapAsync();
+        }
+
+        private void OpenPlaceReport()
+        {
+            isPlaceMenuOpen = false;
+            placeReportReason = "";
+            placeReportMessage = "";
+            showPlaceReportModal = true;
+        }
+
+        private async Task SubmitPlaceReportAsync()
+        {
+            if (selectedPlace is null) return;
+            if (string.IsNullOrWhiteSpace(placeReportReason))
+            {
+                placeReportMessage = "신고 내용을 입력해 주세요.";
+                return;
+            }
+
+            var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+            Db.PlaceReports.Add(new PlaceReport
+            {
+                Nickname = user.Identity?.IsAuthenticated == true ? user.Identity.Name ?? "회원" : "방문자",
+                PlaceName = selectedPlace.Name,
+                Category = selectedPlace.Category,
+                Latitude = selectedPlace.Latitude,
+                Longitude = selectedPlace.Longitude,
+                NaverPlaceUrl = selectedPlace.NaverPlaceUrl,
+                BusinessHours = selectedPlace.BusinessHours,
+                Review = $"[장소 신고] {placeReportReason.Trim()}",
+                Status = Status.Pending
+            });
+            await Db.SaveChangesAsync();
+            showPlaceReportModal = false;
+        }
+
+        private async Task ShareSelectedPlaceAsync()
+        {
+            isPlaceMenuOpen = false;
+            if (selectedPlace is null || _mapModule is null) return;
+            var shareUrl = Navigation.ToAbsoluteUri($"/map?placeId={selectedPlace.Id}").ToString();
+            try
+            {
+                await _mapModule.InvokeVoidAsync("sharePlace", selectedPlace.Name, selectedPlace.Address, shareUrl);
+                shareMessage = "장소 링크를 공유했어요.";
+            }
+            catch (JSException ex) when (ex.Message.Contains("AbortError", StringComparison.OrdinalIgnoreCase))
+            {
+                shareMessage = "공유를 취소했습니다.";
+            }
+            catch (JSException)
+            {
+                shareMessage = "공유 기능을 사용할 수 없습니다.";
+            }
+        }
+
+        private async Task SavePlaceTagsAsync()
+        {
+            if (selectedPlace is null) return;
+            var additions = newPlaceTags.Split([',', '，', ';', '；'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (additions.Length == 0 || additions.Any(tag => tag.Length > 40))
+            {
+                placeContributionMessage = "태그를 입력해 주세요. 태그는 40자까지 입력할 수 있어요.";
+                return;
+            }
+
+            var place = await Db.Places.FindAsync(selectedPlace.Id);
+            if (place is null) return;
+            // 별도 태그 테이블이 아직 없어 기존 제보 테이블을 태그 저장소로 사용한다.
+            Db.PlaceReports.Add(new PlaceReport
+            {
+                Nickname = "방문자",
+                PlaceName = place.Name,
+                Category = place.Category,
+                Latitude = place.Latitude,
+                Longitude = place.Longitude,
+                NaverPlaceUrl = place.NaverPlaceUrl,
+                BusinessHours = place.BusinessHours,
+                Review = "[태그 추가]",
+                Memo = string.Join(", ", additions),
+                Status = Status.Approved
+            });
+            await Db.SaveChangesAsync();
+            selectedPlaceTags = selectedPlaceTags
+                .Concat(additions)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            newPlaceTags = "";
+            showTagEditor = false;
+            placeContributionMessage = "태그를 추가했습니다.";
+        }
+
+        private async Task SaveBusinessHoursAsync()
+        {
+            if (selectedPlace is null) return;
+            if (string.IsNullOrWhiteSpace(newBusinessHours) || newBusinessHours.Length > 500)
+            {
+                placeContributionMessage = "영업시간을 입력해 주세요. 최대 500자까지 가능합니다.";
+                return;
+            }
+            var place = await Db.Places.FindAsync(selectedPlace.Id);
+            if (place is null) return;
+            place.BusinessHours = newBusinessHours.Trim();
+            await Db.SaveChangesAsync();
+            selectedPlace.BusinessHours = place.BusinessHours;
+            newBusinessHours = "";
+            showBusinessHoursEditor = false;
+            placeContributionMessage = "영업시간을 추가했습니다.";
+        }
+
+        private void HandlePlaceImageSelection(InputFileChangeEventArgs args)
+        {
+            placeContributionMessage = "";
+            if (args.FileCount is < 1 or > 5)
+            {
+                placeImageFiles.Clear();
+                placeContributionMessage = "사진은 한 번에 1~5장까지 추가할 수 있어요.";
+                return;
+            }
+            placeImageFiles = args.GetMultipleFiles(5).ToList();
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            if (placeImageFiles.Any(file => file.Size > MaxCommentImageSize || !allowed.Contains(Path.GetExtension(file.Name))))
+            {
+                placeImageFiles.Clear();
+                placeContributionMessage = "JPG, PNG, GIF, WEBP 사진만 가능하며 장당 5MB까지 추가할 수 있어요.";
+            }
+            else
+            {
+                placeContributionMessage = $"사진 {placeImageFiles.Count}장을 선택했습니다.";
+            }
+        }
+
+        private async Task UploadPlaceImagesAsync()
+        {
+            if (selectedPlace is null || placeImageFiles.Count == 0) return;
+            var folder = Path.Combine(Environment.WebRootPath, "uploads", "places", selectedPlace.Id.ToString());
+            Directory.CreateDirectory(folder);
+            foreach (var file in placeImageFiles)
+            {
+                var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+                var fileName = $"{Guid.NewGuid():N}{extension}";
+                var filePath = Path.Combine(folder, fileName);
+                await using (var stream = File.Create(filePath))
+                    await file.OpenReadStream(MaxCommentImageSize).CopyToAsync(stream);
+                Db.PlaceImages.Add(new PlaceImage { PlaceId = selectedPlace.Id, FilePath = $"/uploads/places/{selectedPlace.Id}/{fileName}" });
+            }
+            await Db.SaveChangesAsync();
+            selectedPlaceImages = await Db.PlaceImages.Where(image => image.PlaceId == selectedPlace.Id).Select(image => image.FilePath).ToListAsync();
+            placeImageFiles.Clear();
+            placeContributionMessage = "사진을 추가했습니다.";
         }
 
         private async Task LoadCommentsAsync()

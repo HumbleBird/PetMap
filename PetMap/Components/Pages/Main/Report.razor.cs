@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using PetMap.Data.Entities;
 using PetMap.Data.Utiles;
@@ -8,9 +9,11 @@ namespace PetMap.Components.Pages.Main;
 
 public partial class Report : ComponentBase, IDisposable
 {
+    [Parameter] public bool ShowTrigger { get; set; } = true;
     // 화면 입력값과 검색 결과를 보관한다.
     private PlaceReport report = new PlaceReport(); 
     private bool showReportModal = false;
+    private bool editSuggestionMode;
     private string searchKeyword = "";
     private int imageCount = 0;
     private int imageInputKey = 0;
@@ -74,6 +77,7 @@ public partial class Report : ComponentBase, IDisposable
     // 창을 열기 전에 브라우저에 저장된 임시 제보가 있으면 복원한다.
     private async Task OpenReportModal()
     {
+        editSuggestionMode = false;
         activeCategoryGroupKey = "Leisure";
         var draftJson = await LoadTempReportAsync();
         if (!string.IsNullOrWhiteSpace(draftJson))
@@ -92,6 +96,44 @@ public partial class Report : ComponentBase, IDisposable
         }
 
         showReportModal = true;
+    }
+
+    // 지도 상세의 정보 수정은 기존 제보 폼에 현재 장소 정보를 채워 제안으로 제출한다.
+    public async Task OpenEditSuggestionAsync(int placeId)
+    {
+        var place = await Db.Places.SingleOrDefaultAsync(item => item.Id == placeId);
+        if (place is null) return;
+
+        var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        report = new PlaceReport
+        {
+            Nickname = user.Identity?.IsAuthenticated == true ? user.Identity.Name ?? "회원" : "방문자",
+            PlaceName = place.Name,
+            Category = place.Category,
+            Latitude = place.Latitude,
+            Longitude = place.Longitude,
+            NaverPlaceUrl = place.NaverPlaceUrl,
+            BusinessHours = place.BusinessHours,
+            Review = place.Description ?? "",
+            Memo = place.Memo
+        };
+        selectedCategories = (place.Category ?? "")
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        searchKeyword = place.Name;
+        searchResults.Clear();
+        errorMessage = "";
+        imageCount = 0;
+        editSuggestionMode = true;
+        showReportModal = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // 부모(Map)에서 호출하는 경우에도 자식 컴포넌트의 모달을 즉시 다시 그린다.
+    public async Task OpenReportFromMapAsync()
+    {
+        await OpenReportModal();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void CloseReportModal()
@@ -124,7 +166,7 @@ public partial class Report : ComponentBase, IDisposable
             NaverPlaceUrl = report.NaverPlaceUrl,
             BusinessHours = report.BusinessHours,
 
-            Review = report.Review,
+            Review = editSuggestionMode ? $"[정보 수정 제안] {report.Review}" : report.Review,
             Memo = report.Memo,
 
             Status = Status.Pending,
@@ -136,6 +178,7 @@ public partial class Report : ComponentBase, IDisposable
 
         await ClearTempReportAsync();
         ResetReportForm();
+        editSuggestionMode = false;
         ShowCloseReportModal = false;
 
         CloseReportModal();
@@ -270,6 +313,7 @@ public partial class Report : ComponentBase, IDisposable
     // 새 제보를 시작할 수 있도록 입력, 검색 결과, 파일 입력을 초기화한다.
     private void ResetReportForm()
     {
+        editSuggestionMode = false;
         report = new PlaceReport();
         selectedCategories.Clear();
         searchKeyword = "";

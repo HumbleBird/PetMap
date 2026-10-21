@@ -1,4 +1,5 @@
-﻿@page "/Account/Register"
+@page "/Account/Register"
+@layout AccountLayout
 
 @using System.ComponentModel.DataAnnotations
 @using System.Text
@@ -15,47 +16,63 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register</PageTitle>
+<PageTitle>회원가입 | 댕동여지도</PageTitle>
 
-<h1>Register</h1>
+<div class="account-content">
+    <h1 class="account-page-title">설정</h1>
+    <section class="account-intro" aria-label="계정 안내">
+        <span class="account-intro-icon" aria-hidden="true">◎</span>
+        <span><strong>계정</strong><small>로그인 후 닉네임, 비밀번호, 활동 내역을 관리할 수 있어요.</small></span>
+    </section>
 
-<div class="row">
-    <div class="col-lg-6">
+    <section class="account-auth-section register-section" aria-labelledby="register-title">
+        <h2 id="register-title">회원가입</h2>
+        <p class="account-section-description">소셜 인증 후 닉네임을 확인해요.</p>
         <StatusMessage Message="@Message" />
-        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+        <div class="account-divider"><span>또는 아이디로 가입</span></div>
+        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register" class="account-form">
             <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            <ValidationSummary class="account-validation-summary" role="alert" />
+            <div class="account-field">
+                <label for="Input.Email">아이디</label>
+                <InputText @bind-Value="Input.Email" id="Input.Email" class="account-input" autocomplete="username" aria-required="true" placeholder="로그인용 아이디" />
+                <ValidationMessage For="() => Input.Email" class="account-validation-message" />
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            <div class="account-field">
+                <label for="Input.Password">비밀번호</label>
+                <div class="account-password-wrap">
+                    <InputText type="@(showPassword ? "text" : "password")" @bind-Value="Input.Password" id="Input.Password" class="account-input" autocomplete="new-password" aria-required="true" placeholder="비밀번호를 입력해 주세요" />
+                    <button type="button" class="password-visibility-button" aria-label="비밀번호 표시 전환" @onclick="() => showPassword = !showPassword">@(showPassword ? "숨김" : "보기")</button>
+                </div>
+                <ValidationMessage For="() => Input.Password" class="account-validation-message" />
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+            <div class="account-field">
+                <label for="Input.ConfirmPassword">비밀번호 확인</label>
+                <div class="account-password-wrap">
+                    <InputText type="@(showConfirmPassword ? "text" : "password")" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="account-input" autocomplete="new-password" aria-required="true" placeholder="비밀번호를 다시 입력해 주세요" />
+                    <button type="button" class="password-visibility-button" aria-label="비밀번호 확인 표시 전환" @onclick="() => showConfirmPassword = !showConfirmPassword">@(showConfirmPassword ? "숨김" : "보기")</button>
+                </div>
+                <ValidationMessage For="() => Input.ConfirmPassword" class="account-validation-message" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+            <div class="account-field">
+                <label for="Input.Nickname">닉네임</label>
+                <InputText @bind-Value="Input.Nickname" id="Input.Nickname" class="account-input" autocomplete="nickname" aria-required="true" placeholder="게시판에 표시될 닉네임" />
+                <ValidationMessage For="() => Input.Nickname" class="account-validation-message" />
+            </div>
+            <button type="submit" class="account-primary-button">회원가입</button>
+            <div class="account-signup-link account-login-link">
+                <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Login", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">로그인으로</a>
+            </div>
         </EditForm>
-    </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div>
+        <div class="account-divider"><span>소셜 계정으로 가입</span></div>
+        <ExternalLoginPicker Mode="register" ReturnUrl="@ReturnUrl" />
+    </section>
+    <AccountSettingsSection />
 </div>
-
 @code {
     private IEnumerable<IdentityError>? identityErrors;
+    private bool showPassword;
+    private bool showConfirmPassword;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
@@ -74,7 +91,7 @@
     {
         var user = CreateUser();
 
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        await UserStore.SetUserNameAsync(user, Input.Nickname, CancellationToken.None);
         var emailStore = GetEmailStore();
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
         var result = await UserManager.CreateAsync(user, Input.Password);
@@ -148,5 +165,9 @@
         [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; } = "";
+
+        [Required]
+        [StringLength(30, MinimumLength = 2)]
+        public string Nickname { get; set; } = "";
     }
 }

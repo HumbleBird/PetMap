@@ -21,7 +21,10 @@
     <header class="map-page-header">
         <a class="map-home-link" href="/" aria-label="랜딩 페이지로 이동">댕동여지도</a>
         <nav class="map-header-actions" aria-label="사용자 메뉴">
-            <Report />
+            <button type="button" class="report-button" @onclick="OpenMapReportAsync">
+                <span class="report-button-icon" aria-hidden="true">+</span>
+                <span>장소 제보</span>
+            </button>
             <AuthorizeView>
                 <Authorized>
                     <a class="map-header-button account-button" href="/Account/Manage">@context.User.Identity?.Name</a>
@@ -65,7 +68,6 @@
                     ×
                 </button>
             </header>
-
             <nav class="filter-tabs" aria-label="카테고리 그룹">
                 @foreach (var group in categoryGroups)
                 {
@@ -126,8 +128,28 @@
             {
             <header class="place-detail-header">
                 <span>장소 정보</span>
-                <button type="button" aria-label="상세 정보 닫기" @onclick="ClosePlaceDetails">×</button>
+                <div class="place-detail-header-actions">
+                    <div class="place-detail-menu-wrap">
+                        <button type="button" class="place-detail-menu-button" aria-label="장소 메뉴" aria-expanded="@isPlaceMenuOpen" @onclick="TogglePlaceMenu">
+                            <span class="place-menu-dot" aria-hidden="true"></span><span class="place-menu-dot" aria-hidden="true"></span><span class="place-menu-dot" aria-hidden="true"></span>
+                        </button>
+                        @if (isPlaceMenuOpen)
+                        {
+                            <div class="place-detail-menu" role="menu">
+                                <button type="button" role="menuitem" @onclick="OpenPlaceHistoryAsync">변경 이력</button>
+                                <button type="button" role="menuitem" @onclick="OpenPlaceEditSuggestionAsync">정보 수정</button>
+                                <button type="button" role="menuitem" @onclick="OpenPlaceReport">신고하기</button>
+                                <button type="button" role="menuitem" @onclick="ShareSelectedPlaceAsync">공유하기</button>
+                            </div>
+                        }
+                    </div>
+                    <button type="button" aria-label="상세 정보 닫기" @onclick="ClosePlaceDetails">×</button>
+                </div>
             </header>
+            @if (!string.IsNullOrWhiteSpace(shareMessage))
+            {
+                <p class="place-contribution-message">@shareMessage</p>
+            }
             @if (selectedPlaceImages.Count > 0)
             {
                 <img class="place-detail-cover" src="@selectedPlaceImages[0]" alt="@selectedPlace.Name 사진" />
@@ -144,17 +166,64 @@
                 {
                     <h3>메뉴</h3><p>@(string.IsNullOrWhiteSpace(selectedPlace.Menu) ? "등록된 메뉴 정보가 없습니다." : selectedPlace.Menu)</p>
                 }
-                <h3>태그</h3>
+                <h3>카테고리</h3>
                 <div class="place-detail-tags">
-                    @if (!string.IsNullOrWhiteSpace(selectedPlace.RestaurantType))
-                    { <span>@selectedPlace.RestaurantType</span> }
                     @foreach (var tag in selectedPlace.Category.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
                     {
                         var tagLabel = Enum.TryParse<AnimalCategory>(tag, out var parsed) ? GetCategoryLabel(parsed) : tag;
                         <span>@tagLabel</span>
                     }
+                    @if (!string.IsNullOrWhiteSpace(selectedPlace.RestaurantType)) { <span>@selectedPlace.RestaurantType</span> }
                 </div>
-                <h3>영업시간</h3><p>@(selectedPlace.BusinessHours ?? "정보 없음")</p>
+                <h3>태그</h3>
+                <div class="place-detail-tags">
+                    @foreach (var tag in selectedPlaceTags) { <span>@tag</span> }
+                </div>
+                @if (!HasPlaceTags)
+                {
+                    @if (!showTagEditor)
+                    {
+                        <button type="button" class="place-contribute-button" @onclick="() => showTagEditor = true">+ 태그 추가</button>
+                    }
+                    else
+                    {
+                        <div class="place-contribute-form">
+                            <label for="place-tag-input">태그를 입력해 주세요</label>
+                            <InputText id="place-tag-input" @bind-Value="newPlaceTags" placeholder="예: 대형견 가능, 주차 가능" />
+                            <button type="button" @onclick="SavePlaceTagsAsync">태그 저장</button>
+                        </div>
+                    }
+                }
+                <h3>영업시간</h3>
+                @if (string.IsNullOrWhiteSpace(selectedPlace.BusinessHours))
+                {
+                    @if (!showBusinessHoursEditor)
+                    {
+                        <button type="button" class="place-contribute-button" @onclick="() => showBusinessHoursEditor = true">+ 영업시간 추가</button>
+                    }
+                    else
+                    {
+                        <div class="place-contribute-form">
+                            <label for="place-hours-input">영업시간을 입력해 주세요</label>
+                            <InputTextArea id="place-hours-input" @bind-Value="newBusinessHours" rows="3" placeholder="예: 매일 10:00~20:00" />
+                            <button type="button" @onclick="SaveBusinessHoursAsync">영업시간 저장</button>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p>@selectedPlace.BusinessHours</p>
+                }
+                <h3>사진</h3>
+                <div class="place-photo-contribution">
+                    <InputFile OnChange="HandlePlaceImageSelection" multiple accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp" />
+                    <button type="button" @onclick="UploadPlaceImagesAsync" disabled="@(placeImageFiles.Count == 0)">사진 추가</button>
+                    <small>로그인 없이 추가할 수 있어요. 이미지 최대 5장, 장당 5MB</small>
+                    @if (!string.IsNullOrWhiteSpace(placeContributionMessage))
+                    {
+                        <p class="place-contribution-message">@placeContributionMessage</p>
+                    }
+                </div>
                 <h3>메모</h3><p>@(selectedPlace.Memo ?? selectedPlace.Description ?? "등록된 메모가 없습니다.")</p>
                 <h3>종합평점</h3>
                 <div class="place-rating-summary">@(selectedPlace.RatingCount > 0 ? $"★ {selectedPlace.AverageRating:F1} ({selectedPlace.RatingCount}명)" : "아직 평가가 없습니다.")</div>
@@ -306,6 +375,49 @@
     </div>
     <div id="map"></div>
 </div>
+
+@if (showPlaceHistoryModal)
+{
+    <ModalShell Title="변경 이력" TitleId="place-history-title" OnClose="() => showPlaceHistoryModal = false">
+        <ChildContent>
+            @if (selectedPlaceHistory.Count == 0)
+            {
+                <p>등록된 제보 및 수정 이력이 없습니다.</p>
+            }
+            else
+            {
+                <div class="place-history-list">
+                    @foreach (var entry in selectedPlaceHistory)
+                    {
+                        <article class="place-history-item" @key="entry.Id">
+                            <div><strong>@entry.Nickname</strong><time>@entry.CreatedAt.ToString("yyyy.MM.dd HH:mm")</time></div>
+                            <span class="place-history-status">@GetReportStatusLabel(entry.Status)</span>
+                            @if (!string.IsNullOrWhiteSpace(entry.Review)) { <p>@entry.Review</p> }
+                            @if (!string.IsNullOrWhiteSpace(entry.AdminComment)) { <small>관리자 답변: @entry.AdminComment</small> }
+                        </article>
+                    }
+                </div>
+            }
+        </ChildContent>
+        <FooterContent><button type="button" class="btn btn-secondary" @onclick="() => showPlaceHistoryModal = false">닫기</button></FooterContent>
+    </ModalShell>
+}
+
+@if (showPlaceReportModal && selectedPlace is not null)
+{
+    <ModalShell Title="장소 신고" TitleId="place-report-dialog-title" OnClose="() => showPlaceReportModal = false">
+        <ChildContent>
+            <p><strong>@selectedPlace.Name</strong>의 정보나 운영 상태에 문제가 있나요?</p>
+            <InputTextArea class="form-control" @bind-Value="placeReportReason" rows="4" maxlength="1000" placeholder="신고 내용을 적어 주세요." />
+            @if (!string.IsNullOrWhiteSpace(placeReportMessage)) { <p class="place-contribution-message">@placeReportMessage</p> }
+        </ChildContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="() => showPlaceReportModal = false">취소</button>
+            <button type="button" class="btn btn-primary" @onclick="SubmitPlaceReportAsync">신고 접수</button>
+        </FooterContent>
+    </ModalShell>
+}
 </div>
 </div>
+<Report @ref="reportComponent" ShowTrigger="false" />
 
