@@ -11,8 +11,10 @@
     overflow: hidden;
     color: var(--ink);
     background-color: var(--paper);
-    background-image: radial-gradient(rgba(101, 75, 43, .06) .7px, transparent .7px), linear-gradient(135deg, rgba(255,255,255,.42), transparent 50%);
-    background-size: 7px 7px, 100% 100%;
+    background-image: linear-gradient(rgba(255, 250, 235, .68), rgba(255, 250, 235, .76)), url("/images/watercolor-mountain-bg.jpg");
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
     font-family: "Noto Serif KR", "Batang", Georgia, serif;
 }
 
@@ -56,25 +58,12 @@
 .hero-note { margin-top: 29px; color: #81745f; font-size: 12px; }
 .hero-note span { margin-right: 7px; color: var(--rust); }
 
-.hero-map { position: relative; display: grid; min-height: 520px; place-items: center; isolation: isolate; }
-.sun-disc { position: absolute; top: 9px; left: 25%; width: 126px; aspect-ratio: 1; border-radius: 50%; background: linear-gradient(180deg, rgba(209, 117, 91, .72), rgba(232, 178, 133, .12)); }
-.map-cloud { position: absolute; width: 130px; height: 28px; border-radius: 50%; background: rgba(207, 192, 159, .5); filter: blur(7px); }
-.cloud-one { top: 20%; right: 0; }.cloud-two { bottom: 12%; left: 2%; width: 180px; }
-.district-map-art { position: relative; width: min(100%, 550px); aspect-ratio: 1.05 / 1; overflow: hidden; border: 5px solid #4a321e; border-radius: 38% 31% 41% 29% / 31% 39% 28% 40%; background-color: #eee4ca; background-image: radial-gradient(rgba(104, 89, 56, .18) 1px, transparent 1px), linear-gradient(145deg, #efe5ca, #f7efd9 55%, #e8ddc0); background-size: 13px 13px, cover; box-shadow: 0 22px 42px rgba(70, 49, 30, .15), inset 0 0 45px rgba(128, 103, 66, .13); transform: rotate(-2deg); }
-.district-map-art::before { position: absolute; inset: 5%; border: 1px solid rgba(122, 89, 46, .28); border-radius: inherit; content: ""; }
-.district-roads { position: absolute; inset: 4%; width: 92%; height: 92%; }
-.river { fill: none; stroke: #87b6ba; stroke-width: 12; opacity: .72; }
-.road { fill: none; stroke: #fffaf0; stroke-width: 8; stroke-linecap: round; }
-.road.minor { stroke-width: 3; opacity: .85; }
-.district-name { position: absolute; z-index: 2; color: #463722; font-size: clamp(18px, 2vw, 25px); font-weight: 900; text-shadow: 0 1px #fff7e5; transform: rotate(2deg); }
-.manan-name { top: 56%; left: 22%; }.dongan-name { top: 55%; right: 17%; }
-.map-pin { position: absolute; z-index: 3; display: grid; width: 35px; height: 39px; place-items: center; border: 2px solid #fff4dd; border-radius: 50% 50% 50% 4px; background: #b55c37; color: white; font-family: Arial, sans-serif; font-size: 12px; box-shadow: 0 3px 7px rgba(47, 38, 25, .26); transform: rotate(-45deg); }
-.map-pin::first-letter { transform: rotate(45deg); }.pin-b,.pin-f { background: #284c89; }.pin-c,.pin-g { background: #315c43; }.pin-d { background: #a27344; }.pin-e { background: #c66e32; }.pin-a { top: 19%; left: 36%; }.pin-b { top: 31%; right: 23%; }.pin-c { top: 39%; left: 21%; }.pin-d { top: 46%; right: 37%; }.pin-e { bottom: 27%; left: 47%; }.pin-f { bottom: 24%; right: 22%; }.pin-g { top: 68%; left: 22%; }.pin-h { top: 22%; right: 39%; background: #79603d; }
-.map-tree { position: absolute; z-index: 1; color: #55704e; font-size: 27px; opacity: .55; }.tree-a { top: 21%; left: 20%; }.tree-b { top: 29%; left: 63%; }.tree-c { bottom: 23%; left: 37%; }.tree-d { bottom: 31%; right: 14%; }
-.hero-map-caption { position: absolute; right: 2%; bottom: 0; display: flex; align-items: center; gap: 8px; color: #75664e; font-family: Arial, sans-serif; font-size: 12px; }
-.caption-dot { width: 10px; height: 10px; border-radius: 50%; background: #b55c37; }
+.hero-keyring { position: relative; display: grid; min-height: 520px; place-items: center; isolation: isolate; }
+.hero-keyring img { position: relative; z-index: 1; display: block; width: min(100%, 500px); max-height: 520px; object-fit: contain; filter: drop-shadow(0 18px 24px rgba(55, 40, 21, .18)); }
+.keyring-caption { position: absolute; right: 0; bottom: 20px; z-index: 2; display: grid; gap: 4px; margin: 0; padding: 12px 17px; border: 1px solid rgba(117, 86, 48, .2); border-radius: 14px; background: rgba(255, 250, 235, .82); color: #3f493f; box-shadow: 0 8px 20px rgba(74, 57, 35, .1); }
+.keyring-caption span { font-size: 14px; font-weight: 900; }.keyring-caption small { color: #7d715e; font-family: Arial, sans-serif; font-size: 10px; }
 
-.feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 12px 0 62px; }
+.feature-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 12px 0 62px; }
 .feature-card { min-height: 285px; padding: 22px 20px; border: 1px solid #dfceb0; border-radius: 15px; background: rgba(255, 252, 244, .48); box-shadow: 0 5px 15px rgba(90, 68, 37, .04); }
 .feature-heading { display: flex; align-items: center; gap: 10px; min-height: 42px; }
 .feature-number { display: grid; flex: 0 0 40px; height: 40px; place-items: center; border-radius: 12px; background: #193630; color: #fff8e9; font-family: Arial, sans-serif; font-size: 15px; font-weight: 800; }
@@ -140,8 +129,8 @@
     .landing-header,.landing-hero,.feature-grid,.guide-section,.landing-footer { width: min(100% - 36px, 720px); }
     .landing-hero { grid-template-columns: 1fr; gap: 0; padding-top: 52px; }
     .hero-copy { max-width: 620px; }
-    .hero-map { min-height: 480px; }
-    .district-map-art { width: min(100%, 510px); }
+    .hero-keyring { min-height: 440px; }
+    .hero-keyring img { max-height: 440px; }
     .feature-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
     .guide-showcase { grid-template-columns: 1fr; }
     .paper-guide { order: 2; }.phone-preview { order: 1; }
@@ -158,10 +147,9 @@
     .hero-copy h2 { margin-top: 16px; font-size: 21px; }
     .hero-description { font-size: 14px; }
     .hero-note { margin-top: 20px; }
-    .hero-map { min-height: auto; padding: 30px 0 35px; }
-    .district-map-art { width: 95%; border-width: 4px; }
-    .map-pin { width: 28px; height: 31px; font-size: 10px; }
-    .hero-map-caption { right: 1%; bottom: 6px; font-size: 10px; }
+    .hero-keyring { min-height: 320px; padding: 8px 0 35px; }
+    .hero-keyring img { width: min(100%, 320px); max-height: 320px; }
+    .keyring-caption { right: 0; bottom: 0; padding: 9px 12px; }
     .feature-grid { grid-template-columns: 1fr; gap: 10px; padding-bottom: 42px; }
     .feature-card { min-height: auto; padding: 18px; }
     .feature-card p { margin: 13px 0; }
