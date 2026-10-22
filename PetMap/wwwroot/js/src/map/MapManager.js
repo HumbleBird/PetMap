@@ -176,6 +176,17 @@ export function updatePlaceRating(placeId, summary) {
     item.ratingOverlay.setMap(item.visible && summary.ratingCount > 0 ? currentMap : null);
 }
 
+// 랜딩의 추천 장소 링크를 열면 해당 DB 장소의 마커를 지도 중앙으로 이동한다.
+export function focusMapPlace(placeId) {
+    if (!currentMap) return;
+    const item = placeItems.find(entry => Number(entry.place.id) === Number(placeId));
+    if (!item) return;
+
+    const position = new window.kakao.maps.LatLng(item.place.latitude, item.place.longitude);
+    currentMap.setLevel(4);
+    currentMap.panTo(position);
+}
+
 // 상세 패널 안에 선택한 장소만 표시하는 작은 위치 지도를 만든다.
 export async function renderPlaceMiniMap(latitude, longitude, elementId, appKey) {
     const kakao = await loadKakao(appKey, { autoload: false });

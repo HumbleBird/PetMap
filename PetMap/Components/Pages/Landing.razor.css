@@ -100,8 +100,10 @@
 .ink-sun { position: absolute; top: 3px; left: 40%; width: 62px; height: 62px; border-radius: 50%; background: #d18a6e; opacity: .7; }
 .paper-seal { position: absolute; right: 12px; bottom: 13px; padding: 4px 7px; border: 2px solid #a74531; color: #a74531; font-size: 12px; font-weight: 900; }
 .places-column h3 { margin-bottom: 8px; }
-.mini-place { display: grid; grid-template-columns: 62px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid rgba(133, 104, 67, .2); }
+.mini-place { display: grid; grid-template-columns: 62px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid rgba(133, 104, 67, .2); color: inherit; text-decoration: none; transition: transform .18s ease, background .18s ease; }
+.mini-place:hover { transform: translateX(3px); background: rgba(255,255,255,.2); }
 .mini-place-photo { display: grid; min-height: 55px; place-items: center; border-radius: 7px; background: linear-gradient(145deg, #d6c7a6, #809177); font-size: 24px; }
+.mini-place-photo img { width: 100%; height: 100%; min-height: 55px; border-radius: 7px; object-fit: cover; }
 .mini-place div:last-child { display: flex; flex-direction: column; gap: 3px; }
 .mini-place strong { font-size: 12px; }.mini-place span,.mini-place small { color: #756c5d; font-size: 9px; }
 .paper-guide-bottom { margin-top: 5px; padding-top: 12px; border-top: 1px solid #d4c09d; }

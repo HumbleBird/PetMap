@@ -93,10 +93,10 @@
                             <h3>@content.PlacesTitle</h3>
                             @foreach (var place in content.SamplePlaces)
                             {
-                                <div class="mini-place" @key="place.Name">
-                                    <div class="mini-place-photo">@place.Icon</div>
+                                <a class="mini-place" href="@(place.PlaceId > 0 ? $"/map?placeId={place.PlaceId}" : "/map")" @key="place.Name">
+                                    <div class="mini-place-photo">@if (!string.IsNullOrWhiteSpace(place.ImageUrl)) { <img src="@place.ImageUrl" alt="@place.Name 대표 사진" /> } else { @place.Icon }</div>
                                     <div><strong>@place.Name</strong><span>@place.Category</span><small>@place.Description</small></div>
-                                </div>
+                                </a>
                             }
                         </section>
                     </div>

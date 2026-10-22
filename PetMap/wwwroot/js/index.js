@@ -9,6 +9,7 @@ import {
     enableSearchCategoryWheel,
     relayoutMap,
     renderPlaceMiniMap,
+    focusMapPlace,
     updatePlaceRating as updateMapPlaceRating
 } from './src/map/MapManager.js';
 
@@ -36,6 +37,10 @@ export function relayout() {
 
 export function showPlaceMiniMap(latitude, longitude, elementId, appKey) {
     return renderPlaceMiniMap(latitude, longitude, elementId, appKey);
+}
+
+export function focusPlace(placeId) {
+    focusMapPlace(placeId);
 }
 
 export function updatePlaceRating(placeId, summary) {

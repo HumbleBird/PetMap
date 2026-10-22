@@ -21,6 +21,8 @@
     <header class="map-page-header">
         <a class="map-home-link" href="/" aria-label="랜딩 페이지로 이동">댕동여지도</a>
         <nav class="map-header-actions" aria-label="사용자 메뉴">
+            <a class="map-header-button courses-button" href="/courses">내가 만든 코스</a>
+            <button type="button" class="map-header-button saved-places-button" @onclick="ToggleSavedPlacesAsync">저장한 장소 @if (savedPlaces.Count > 0) { <span class="saved-place-count">@savedPlaces.Count</span> }</button>
             <button type="button" class="report-button" @onclick="OpenMapReportAsync">
                 <span class="report-button-icon" aria-hidden="true">+</span>
                 <span>장소 제보</span>
@@ -283,6 +285,44 @@
                     }
                 }
             </section>
+            }
+        </aside>
+        <aside class="saved-places-panel @(isSavedPlacesPanelOpen ? "open" : "")" aria-label="저장한 장소" aria-hidden="@(!isSavedPlacesPanelOpen)">
+            <header class="saved-places-header">
+                <div><strong>장소 저장하기</strong><small>찜한 장소를 지역과 그룹별로 모아보세요.</small></div>
+                <button type="button" aria-label="저장한 장소 닫기" @onclick="() => isSavedPlacesPanelOpen = false">×</button>
+            </header>
+            @if (!string.IsNullOrWhiteSpace(savedPlacesMessage)) { <p class="saved-places-message">@savedPlacesMessage</p> }
+            @if (!isAuthenticated)
+            {
+                <div class="saved-places-empty"><span>♡</span><p>로그인하면 찜한 장소를 저장하고 정리할 수 있어요.</p><a href="/Account/Login?ReturnUrl=%2Fmap">로그인</a></div>
+            }
+            else if (savedPlaces.Count == 0)
+            {
+                <div class="saved-places-empty"><span>♡</span><p>아직 찜한 장소가 없습니다.</p><small>장소 정보를 열고 찜 버튼을 눌러 저장해 보세요.</small></div>
+            }
+            else
+            {
+                <div class="saved-places-list">
+                    @foreach (var region in savedPlaces.GroupBy(place => GetSavedPlaceRegion(place.Address)))
+                    {
+                        <section class="saved-place-region" @key="region.Key">
+                            <h3>@region.Key <span>@region.Count()</span></h3>
+                            @foreach (var place in region)
+                            {
+                                <article class="saved-place-card" @key="place.PlaceId">
+                                    <button type="button" class="saved-place-title" @onclick="() => OpenSavedPlaceAsync(place.PlaceId)">
+                                        @if (!string.IsNullOrWhiteSpace(place.ImageUrl)) { <img src="@place.ImageUrl" alt="@place.Name 대표 사진" /> } else { <span class="saved-place-placeholder">🐾</span> }
+                                        <span><strong>@place.Name</strong><small>@place.Category</small><small>@place.Address</small></span>
+                                    </button>
+                                    <label>그룹 / 폴더<input @bind="place.FolderName" maxlength="80" placeholder="예: 이번 주말에 갈 곳" /></label>
+                                    <label>내 메모<textarea @bind="place.Memo" maxlength="500" rows="2" placeholder="나만의 메모를 남겨보세요."></textarea></label>
+                                    <div class="saved-place-actions"><button type="button" @onclick="() => SaveFavoriteDetailsAsync(place)">저장</button><button type="button" class="remove-saved-place" @onclick="() => RemoveFavoriteAsync(place.PlaceId)">찜 해제</button></div>
+                                </article>
+                            }
+                        </section>
+                    }
+                </div>
             }
         </aside>
 <div class="map-canvas-wrap">

@@ -1,0 +1,157 @@
+@page "/courses"
+@layout PetMap.Components.Layout.LandingLayout
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using PetMap.Data.Entities
+@inject PetMap.Data.ApplicationDbContext Db
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>반려동물 동반 코스 | 댕동여지도</PageTitle>
+<main class="courses-page">
+    <header class="courses-heading">
+        <div><a href="/map" class="courses-back">← 지도</a><p class="courses-eyebrow">PET FRIENDLY ROUTES</p><h1>함께 걷는 코스</h1><p>반려동물과 다녀온 장소를 코스로 묶고, 다른 반려인과 나눠 보세요.</p></div>
+        <a class="courses-create-link" href="#create-course">＋ 코스 만들기</a>
+    </header>
+
+    <section class="course-create-panel" id="create-course">
+        <h2>내 코스 만들기</h2>
+        @if (!isLoggedIn)
+        {
+            <p>코스를 만들고 공유하려면 <a href="/Account/Login?ReturnUrl=%2Fcourses">로그인</a>해 주세요.</p>
+        }
+        else
+        {
+            <div class="course-form-grid">
+                <label>코스 이름<input @bind="newTitle" maxlength="100" placeholder="예: 안양천 산책과 브런치" /></label>
+                <label>카테고리<input @bind="newCategory" maxlength="200" placeholder="산책, 카페 등" /></label>
+                <label>시·군<input @bind="newCity" placeholder="예: 안양시" /></label>
+                <label>구<input @bind="newDistrict" placeholder="예: 만안구" /></label>
+                <label>동<input @bind="newNeighborhood" placeholder="예: 안양동" /></label>
+                <label class="course-description">소개<textarea @bind="newDescription" maxlength="2000" rows="2" placeholder="코스의 특징이나 방문 팁을 적어주세요."></textarea></label>
+            </div>
+            <label class="course-stop-picker">코스에 넣을 장소 (순서대로 선택)
+                <select @bind="selectedPlaceToAdd"><option value="0">장소 선택</option>@foreach (var place in availablePlaces) { <option value="@place.Id">@place.Name · @place.Address</option> }</select>
+                <button type="button" class="course-secondary-button" @onclick="AddStop">장소 추가</button>
+            </label>
+            @if (selectedStops.Count > 0)
+            {
+                <ol class="selected-course-stops">@for (var i = 0; i < selectedStops.Count; i++) { var stopId = selectedStops[i]; var stop = availablePlaces.FirstOrDefault(p => p.Id == stopId); <li @key="stopId"><span>@(i + 1). @stop?.Name</span><button type="button" aria-label="장소 제거" @onclick="() => RemoveStop(stopId)">×</button></li> }</ol>
+            }
+            <label class="course-public-check"><input type="checkbox" @bind="isPublic" /> 다른 사용자에게 공개하고 목록에 등록</label>
+            <button type="button" class="course-primary-button" @onclick="CreateCourseAsync" disabled="@isSaving">@(isSaving ? "저장 중…" : "코스 저장")</button>
+            @if (!string.IsNullOrWhiteSpace(formMessage)) { <p class="course-form-message">@formMessage</p> }
+        }
+    </section>
+
+    <section class="course-browser">
+        <div class="course-browser-heading"><div><h2>@(MineOnly ? "내가 만든 코스" : "함께 나눈 코스")</h2><p>지역과 장소 종류를 골라 원하는 코스를 찾아보세요.</p></div>@if (isLoggedIn) { <button type="button" class="course-view-toggle" @onclick="ToggleMineFilter">@(MineOnly ? "전체 코스 보기" : "내 코스만 보기")</button> } else { <a class="course-view-toggle" href="/Account/Login?ReturnUrl=%2Fcourses">로그인</a> }</div>
+        <div class="course-filters">
+            <label>카테고리<select @bind="categoryFilter" @bind:after="ApplyFilters"><option value="">전체 카테고리</option>@foreach (var category in allCourses.Select(c => c.Category).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().Order()) { <option value="@category">@category</option> }</select></label>
+            <label>지역 검색<input @bind="regionFilter" @bind:event="oninput" @bind:after="ApplyFilters" placeholder="시·군 / 구 / 동" /></label>
+            <label>정렬<select @bind="sortOrder" @bind:after="ApplyFilters"><option value="newest">최신순</option><option value="oldest">오래된 순</option><option value="likes-desc">추천 높은 순</option><option value="likes-asc">추천 낮은 순</option></select></label>
+        </div>
+        @if (filteredCourses.Count == 0)
+        {
+            <div class="courses-empty"><span>🐾</span><h3>아직 표시할 코스가 없어요</h3><p>첫 코스를 만들고 다른 반려인과 나눠보세요.</p></div>
+        }
+        else
+        {
+            <div class="course-card-grid">
+                @foreach (var course in filteredCourses)
+                {
+                    <article class="community-course-card" @key="course.Id">
+                        <div class="community-course-top"><span class="course-category-pill">@(string.IsNullOrWhiteSpace(course.Category) ? "반려동물 동반" : course.Category)</span><span class="course-date">@course.CreatedAtUtc.ToLocalTime().ToString("yyyy.MM.dd")</span></div>
+                        <h3>@course.Title</h3><p class="community-course-description">@(string.IsNullOrWhiteSpace(course.Description) ? "코스 소개가 아직 없습니다." : course.Description)</p>
+                        <p class="community-course-region">📍 @FormatRegion(course.City, course.District, course.Neighborhood)</p>
+                        <ol class="community-course-stops">@foreach (var stop in course.Stops.OrderBy(s => s.SortOrder).Take(4)) { <li>@stop.PlaceName</li> } @if (course.Stops.Count > 4) { <li>외 @(course.Stops.Count - 4)곳</li> }</ol>
+                        <div class="community-course-meta"><span>♡ @course.Likes 추천</span><span>☆ @course.Favorites 찜</span><span>장소 @course.Stops.Count</span></div>
+                        <div class="community-course-actions">
+                            @if (isLoggedIn) { <button type="button" @onclick="() => ToggleCourseLikeAsync(course.Id)">@(course.LikedByMe ? "♥ 추천 취소" : "♡ 추천")</button><button type="button" @onclick="() => ToggleCourseFavoriteAsync(course.Id)">@(course.FavoritedByMe ? "★ 찜 취소" : "☆ 찜")</button> }
+                            <button type="button" @onclick="() => ShareCourseAsync(course.Id)">공유</button>
+                            @if (course.UserId == currentUserId) { <button type="button" class="course-delete" @onclick="() => DeleteCourseAsync(course.Id)">삭제</button> }
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "mine")] public bool MineOnly { get; set; }
+    [SupplyParameterFromQuery(Name = "courseId")] public int? SharedCourseId { get; set; }
+    private string? currentUserId;
+    private bool isLoggedIn, isSaving, isPublic = true;
+    private string newTitle = "", newDescription = "", newCategory = "", newCity = "안양시", newDistrict = "", newNeighborhood = "", formMessage = "";
+    private string categoryFilter = "", regionFilter = "", sortOrder = "newest";
+    private int selectedPlaceToAdd;
+    private readonly List<int> selectedStops = [];
+    private List<PetMap.Data.Entities.Place> availablePlaces = [];
+    private List<CourseCard> allCourses = [], filteredCourses = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        isLoggedIn = auth.User.Identity?.IsAuthenticated == true;
+        currentUserId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        availablePlaces = await Db.Places.AsNoTracking().OrderBy(place => place.Name).ToListAsync();
+        var query = Db.PetCourses.AsNoTracking().AsQueryable();
+        query = isLoggedIn ? query.Where(course => course.IsPublic || course.UserId == currentUserId) : query.Where(course => course.IsPublic);
+        var rows = await query.ToListAsync();
+        var ids = rows.Select(course => course.Id).ToList();
+        var stops = await (from stop in Db.PetCourseStops.AsNoTracking()
+                           join place in Db.Places.AsNoTracking() on stop.PlaceId equals place.Id
+                           where ids.Contains(stop.CourseId)
+                           select new { stop.CourseId, stop.PlaceId, stop.SortOrder, place.Name }).ToListAsync();
+        var likes = await Db.PetCourseLikes.AsNoTracking().Where(like => ids.Contains(like.CourseId)).GroupBy(like => like.CourseId).Select(group => new { Id = group.Key, Count = group.Count() }).ToDictionaryAsync(x => x.Id, x => x.Count);
+        var favorites = await Db.PetCourseFavorites.AsNoTracking().Where(favorite => ids.Contains(favorite.CourseId)).GroupBy(favorite => favorite.CourseId).Select(group => new { Id = group.Key, Count = group.Count() }).ToDictionaryAsync(x => x.Id, x => x.Count);
+        var liked = isLoggedIn ? await Db.PetCourseLikes.Where(like => ids.Contains(like.CourseId) && like.UserId == currentUserId).Select(like => like.CourseId).ToListAsync() : [];
+        var favorited = isLoggedIn ? await Db.PetCourseFavorites.Where(favorite => ids.Contains(favorite.CourseId) && favorite.UserId == currentUserId).Select(favorite => favorite.CourseId).ToListAsync() : [];
+        allCourses = rows.Select(course => new CourseCard { Id = course.Id, UserId = course.UserId, Title = course.Title, Description = course.Description, Category = course.Category, City = course.City, District = course.District, Neighborhood = course.Neighborhood, CreatedAtUtc = course.CreatedAtUtc, Likes = likes.GetValueOrDefault(course.Id), Favorites = favorites.GetValueOrDefault(course.Id), LikedByMe = liked.Contains(course.Id), FavoritedByMe = favorited.Contains(course.Id), Stops = stops.Where(stop => stop.CourseId == course.Id).OrderBy(stop => stop.SortOrder).Select(stop => new CourseStopCard { PlaceId = stop.PlaceId, PlaceName = stop.Name, SortOrder = stop.SortOrder }).ToList() }).ToList();
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        IEnumerable<CourseCard> query = allCourses;
+        if (MineOnly && isLoggedIn) query = query.Where(course => course.UserId == currentUserId);
+        if (SharedCourseId is int sharedCourseId) query = query.Where(course => course.Id == sharedCourseId);
+        if (!string.IsNullOrWhiteSpace(categoryFilter)) query = query.Where(course => course.Category == categoryFilter);
+        if (!string.IsNullOrWhiteSpace(regionFilter)) query = query.Where(course => $"{course.City} {course.District} {course.Neighborhood}".Contains(regionFilter.Trim(), StringComparison.OrdinalIgnoreCase));
+        query = sortOrder switch { "oldest" => query.OrderBy(course => course.CreatedAtUtc), "likes-desc" => query.OrderByDescending(course => course.Likes).ThenByDescending(course => course.CreatedAtUtc), "likes-asc" => query.OrderBy(course => course.Likes).ThenByDescending(course => course.CreatedAtUtc), _ => query.OrderByDescending(course => course.CreatedAtUtc) };
+        filteredCourses = query.ToList();
+    }
+    private void ToggleMineFilter() { MineOnly = !MineOnly; ApplyFilters(); }
+
+    private async Task CreateCourseAsync()
+    {
+        if (!isLoggedIn || currentUserId is null) { formMessage = "로그인 후 이용할 수 있습니다."; return; }
+        if (string.IsNullOrWhiteSpace(newTitle)) { formMessage = "코스 이름을 입력해 주세요."; return; }
+        if (selectedStops.Count == 0) { formMessage = "코스에 넣을 장소를 하나 이상 선택해 주세요."; return; }
+        isSaving = true;
+        var selectedPlaces = availablePlaces.Where(place => selectedStops.Contains(place.Id)).ToList();
+        var course = new PetCourse { UserId = currentUserId, Title = newTitle.Trim(), Description = newDescription.Trim(), Category = string.IsNullOrWhiteSpace(newCategory) ? string.Join(" · ", selectedPlaces.Select(place => place.Category).Distinct()) : newCategory.Trim(), City = newCity.Trim(), District = newDistrict.Trim(), Neighborhood = newNeighborhood.Trim(), IsPublic = isPublic, CreatedAtUtc = DateTime.UtcNow, Stops = selectedStops.Select((placeId, index) => new PetCourseStop { PlaceId = placeId, SortOrder = index + 1 }).ToList() };
+        Db.PetCourses.Add(course); await Db.SaveChangesAsync();
+        newTitle = newDescription = newCategory = newDistrict = newNeighborhood = ""; selectedStops.Clear(); formMessage = "코스를 저장했습니다."; isSaving = false; await LoadDataAsync();
+    }
+
+    private void AddStop() { if (selectedPlaceToAdd > 0 && !selectedStops.Contains(selectedPlaceToAdd)) selectedStops.Add(selectedPlaceToAdd); selectedPlaceToAdd = 0; }
+    private void RemoveStop(int id) => selectedStops.Remove(id);
+    private static string FormatRegion(string city, string district, string neighborhood) => string.Join(" ", new[] { city, district, neighborhood }.Where(value => !string.IsNullOrWhiteSpace(value)));
+    private async Task ToggleCourseLikeAsync(int id) { if (!isLoggedIn || currentUserId is null) return; var row = await Db.PetCourseLikes.FirstOrDefaultAsync(like => like.CourseId == id && like.UserId == currentUserId); if (row is null) Db.PetCourseLikes.Add(new PetCourseLike { CourseId = id, UserId = currentUserId }); else Db.PetCourseLikes.Remove(row); await Db.SaveChangesAsync(); await LoadDataAsync(); }
+    private async Task ToggleCourseFavoriteAsync(int id) { if (!isLoggedIn || currentUserId is null) return; var row = await Db.PetCourseFavorites.FirstOrDefaultAsync(favorite => favorite.CourseId == id && favorite.UserId == currentUserId); if (row is null) Db.PetCourseFavorites.Add(new PetCourseFavorite { CourseId = id, UserId = currentUserId }); else Db.PetCourseFavorites.Remove(row); await Db.SaveChangesAsync(); await LoadDataAsync(); }
+    private async Task DeleteCourseAsync(int id) { var row = await Db.PetCourses.SingleOrDefaultAsync(course => course.Id == id && course.UserId == currentUserId); if (row is null) return; await Db.PetCourseLikes.Where(like => like.CourseId == id).ExecuteDeleteAsync(); await Db.PetCourseFavorites.Where(favorite => favorite.CourseId == id).ExecuteDeleteAsync(); Db.PetCourses.Remove(row); await Db.SaveChangesAsync(); await LoadDataAsync(); }
+    private async Task ShareCourseAsync(int id) { var url = Navigation.ToAbsoluteUri($"/courses?courseId={id}").ToString(); try { await JS.InvokeVoidAsync("navigator.clipboard.writeText", url); formMessage = "코스 공유 링크를 복사했습니다."; } catch { formMessage = url; } }
+
+    private sealed class CourseCard { public int Id { get; set; } public string UserId { get; set; } = ""; public string Title { get; set; } = ""; public string Description { get; set; } = ""; public string Category { get; set; } = ""; public string City { get; set; } = ""; public string District { get; set; } = ""; public string Neighborhood { get; set; } = ""; public DateTime CreatedAtUtc { get; set; } public int Likes { get; set; } public int Favorites { get; set; } public bool LikedByMe { get; set; } public bool FavoritedByMe { get; set; } public List<CourseStopCard> Stops { get; set; } = []; }
+    private sealed class CourseStopCard { public int PlaceId { get; set; } public string PlaceName { get; set; } = ""; public int SortOrder { get; set; } }
+}

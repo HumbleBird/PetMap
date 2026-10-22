@@ -148,6 +148,38 @@
     transform: translateX(0);
     transition-delay: 0s;
 }
+.saved-place-count { display:inline-grid; min-width:19px; height:19px; margin-left:5px; padding:0 5px; place-items:center; border-radius:999px; background:#edf4ef; color:#315748; font-size:10px; }
+.saved-places-panel { position:absolute; z-index:6; inset:0 0 0 auto; display:flex; width:min(390px,calc(100vw - 24px)); flex-direction:column; overflow:hidden; border-left:1px solid #e6e9ed; background:#fff; box-shadow:-5px 0 20px rgba(24,39,75,.08); transform:translateX(102%); visibility:hidden; pointer-events:none; transition:transform 280ms cubic-bezier(.2,.75,.25,1),visibility 0s linear 280ms; }
+.saved-places-panel.open { visibility:visible; pointer-events:auto; transform:translateX(0); transition-delay:0s; }
+.saved-places-header { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid #edf0f3; background:#fff; }
+.saved-places-header div { display:flex; flex-direction:column; gap:4px; }
+.saved-places-header strong { color:#273444; font-size:15px; }
+.saved-places-header small { color:#8a94a2; font-size:11px; font-weight:400; }
+.saved-places-header button { flex:0 0 30px; width:30px; height:30px; border:0; border-radius:50%; background:#f2f4f7; color:#344054; font-size:22px; cursor:pointer; }
+.saved-places-list { overflow-y:auto; padding:16px; }
+.saved-place-region { margin-bottom:20px; }
+.saved-place-region h3 { display:flex; align-items:center; gap:8px; margin:0 0 10px; color:#445b50; font-size:13px; }
+.saved-place-region h3 span { display:grid; min-width:18px; height:18px; padding:0 4px; place-items:center; border-radius:999px; background:#eef3ef; color:#6d8176; font-size:10px; }
+.saved-place-card { margin-bottom:12px; padding:12px; border:1px solid #e7ebe8; border-radius:13px; background:#fff; }
+.saved-place-title { display:flex; width:100%; align-items:center; gap:10px; margin-bottom:11px; padding:0; border:0; background:none; text-align:left; cursor:pointer; }
+.saved-place-title img,.saved-place-placeholder { flex:0 0 62px; width:62px; height:62px; border-radius:9px; object-fit:cover; }
+.saved-place-placeholder { display:grid; place-items:center; background:linear-gradient(145deg,#e5dcc8,#bfccb9); font-size:24px; }
+.saved-place-title > span:last-child { display:flex; min-width:0; flex-direction:column; gap:4px; }
+.saved-place-title strong,.saved-place-title small { overflow:hidden; color:#34443c; text-overflow:ellipsis; white-space:nowrap; }
+.saved-place-title strong { font-size:13px; }
+.saved-place-title small { color:#87918b; font-size:10px; }
+.saved-place-card label { display:flex; flex-direction:column; gap:5px; margin-top:9px; color:#65746c; font-size:11px; font-weight:700; }
+.saved-place-card input,.saved-place-card textarea { width:100%; min-height:34px; padding:7px 9px; border:1px solid #e0e6e1; border-radius:8px; background:#fff; color:#34443c; font:inherit; font-weight:400; }
+.saved-place-card textarea { resize:vertical; }
+.saved-place-actions { display:flex; justify-content:flex-end; gap:7px; margin-top:10px; }
+.saved-place-actions button { min-height:31px; padding:0 11px; border:1px solid #d8e2db; border-radius:8px; background:#f7faf8; color:#315748; font-size:11px; font-weight:700; cursor:pointer; }
+.saved-place-actions .remove-saved-place { border-color:#f0d5d7; background:#fff8f8; color:#a65059; }
+.saved-places-empty { display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; padding:30px; color:#829087; text-align:center; }
+.saved-places-empty span { color:#b27f86; font-size:35px; }
+.saved-places-empty p { color:#34443c; font-size:14px; }
+.saved-places-empty small { font-size:11px; }
+.saved-places-empty a { margin-top:10px; color:#315748; font-size:13px; font-weight:700; }
+.saved-places-message { margin:0; padding:8px 16px; background:#f1f7f2; color:#315748; font-size:11px; }
 .place-detail-header { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #edf0f3; background: #fff; color: #667085; font-size: 13px; font-weight: 700; }
 .place-detail-header button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: #f2f4f7; font-size: 22px; cursor: pointer; }
 .place-detail-cover { width: 100%; height: 205px; object-fit: cover; background: #f2f4f7; }

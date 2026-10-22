@@ -28,6 +28,7 @@ namespace PetMap.Components.Pages
         private bool showBusinessHoursEditor;
         private bool showPlaceHistoryModal;
         private bool showPlaceReportModal;
+        private bool isSavedPlacesPanelOpen;
         private string newPlaceTags = "";
         private string newBusinessHours = "";
         private string placeReportReason = "";
@@ -37,6 +38,8 @@ namespace PetMap.Components.Pages
         private List<IBrowserFile> placeImageFiles = new();
         private List<PlaceReport> selectedPlaceHistory = new();
         private List<string> selectedPlaceTags = new();
+        private List<SavedPlaceCard> savedPlaces = new();
+        private string savedPlacesMessage = "";
 
         [SupplyParameterFromQuery(Name = "placeId")]
         public int? SharedPlaceId { get; set; }
@@ -117,10 +120,15 @@ namespace PetMap.Components.Pages
                     },
                     _placeSelectCallback
                 );
+                if (!string.IsNullOrWhiteSpace(currentUserId))
+                    await LoadSavedPlacesAsync(currentUserId);
 
                 // 공유 링크에 장소 ID가 있으면 지도가 열린 뒤 해당 장소 패널도 바로 연다.
                 if (SharedPlaceId is int sharedPlaceId)
+                {
+                    await _mapModule.InvokeVoidAsync("focusPlace", sharedPlaceId);
                     await OnMapPlaceSelected(sharedPlaceId);
+                }
             }
 
             if (selectedPlace is not null && lastMiniMapPlaceId != selectedPlace.Id && _mapModule is not null)
@@ -135,6 +143,11 @@ namespace PetMap.Components.Pages
         {
             var place = await Db.Places.SingleOrDefaultAsync(item => item.Id == placeId);
             if (place is null) return;
+
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var viewerId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            Db.PlaceViews.Add(new PlaceView { PlaceId = placeId, UserId = viewerId, ViewedAtUtc = DateTime.UtcNow });
+            await Db.SaveChangesAsync();
 
             selectedPlaceId = placeId;
             isPlaceMenuOpen = false;
@@ -201,6 +214,8 @@ namespace PetMap.Components.Pages
                 ? await Db.PlaceRatings.Where(rating => rating.PlaceId == placeId && rating.UserId == userId).Select(rating => rating.Score).FirstOrDefaultAsync()
                 : 0;
             isFavorite = isAuthenticated && await Db.PlaceFavorites.AnyAsync(favorite => favorite.PlaceId == placeId && favorite.UserId == userId);
+            if (isAuthenticated && userId is not null)
+                await LoadSavedPlacesAsync(userId);
             await LoadCommentsAsync();
             commentError = "";
             // 평점/댓글을 불러온 결과를 열린 패널에 반영한다.
@@ -457,6 +472,83 @@ namespace PetMap.Components.Pages
             else Db.PlaceFavorites.Remove(favorite);
             await Db.SaveChangesAsync();
             isFavorite = favorite is null;
+            await LoadSavedPlacesAsync(userId);
+        }
+
+        private async Task ToggleSavedPlacesAsync()
+        {
+            isSavedPlacesPanelOpen = !isSavedPlacesPanelOpen;
+            if (!isSavedPlacesPanelOpen) return;
+            savedPlacesMessage = "";
+
+            var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            isAuthenticated = !string.IsNullOrWhiteSpace(userId);
+            if (isAuthenticated && userId is not null)
+                await LoadSavedPlacesAsync(userId);
+        }
+
+        private async Task LoadSavedPlacesAsync(string userId)
+        {
+            savedPlaces = await (
+                from favorite in Db.PlaceFavorites.AsNoTracking()
+                join place in Db.Places.AsNoTracking() on favorite.PlaceId equals place.Id
+                where favorite.UserId == userId
+                orderby place.Address, place.Name
+                select new SavedPlaceCard
+                {
+                    PlaceId = place.Id,
+                    Name = place.Name,
+                    Address = place.Address,
+                    Category = place.Category,
+                    ImageUrl = Db.PlaceImages.Where(image => image.PlaceId == place.Id)
+                        .OrderBy(image => image.Id)
+                        .Select(image => image.FilePath)
+                        .FirstOrDefault(),
+                    FolderName = favorite.FolderName,
+                    Memo = favorite.Memo
+                })
+                .ToListAsync();
+        }
+
+        private async Task SaveFavoriteDetailsAsync(SavedPlaceCard savedPlace)
+        {
+            var userId = (await AuthStateProvider.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId)) return;
+            var favorite = await Db.PlaceFavorites.FindAsync(savedPlace.PlaceId, userId);
+            if (favorite is null) return;
+            favorite.FolderName = string.IsNullOrWhiteSpace(savedPlace.FolderName) ? null : savedPlace.FolderName.Trim();
+            favorite.Memo = string.IsNullOrWhiteSpace(savedPlace.Memo) ? null : savedPlace.Memo.Trim();
+            await Db.SaveChangesAsync();
+            savedPlacesMessage = $"{savedPlace.Name} 저장 정보를 업데이트했습니다.";
+        }
+
+        private async Task RemoveFavoriteAsync(int placeId)
+        {
+            var userId = (await AuthStateProvider.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId)) return;
+            var favorite = await Db.PlaceFavorites.FindAsync(placeId, userId);
+            if (favorite is not null)
+            {
+                Db.PlaceFavorites.Remove(favorite);
+                await Db.SaveChangesAsync();
+            }
+            if (selectedPlaceId == placeId) isFavorite = false;
+            await LoadSavedPlacesAsync(userId);
+        }
+
+        private async Task OpenSavedPlaceAsync(int placeId)
+        {
+            isSavedPlacesPanelOpen = false;
+            if (_mapModule is not null)
+                await _mapModule.InvokeVoidAsync("focusPlace", placeId);
+            await OnMapPlaceSelected(placeId);
+        }
+
+        private static string GetSavedPlaceRegion(string address)
+        {
+            var parts = address.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length >= 3 ? string.Join(' ', parts.Take(3)) : address;
         }
 
         private void HandleCommentImages(InputFileChangeEventArgs args)
@@ -578,6 +670,17 @@ namespace PetMap.Components.Pages
             public DateTime? ReportDate { get; set; }
             public double AverageRating { get; set; }
             public int RatingCount { get; set; }
+        }
+
+        private sealed class SavedPlaceCard
+        {
+            public int PlaceId { get; set; }
+            public string Name { get; set; } = "";
+            public string Address { get; set; } = "";
+            public string Category { get; set; } = "";
+            public string? ImageUrl { get; set; }
+            public string? FolderName { get; set; }
+            public string? Memo { get; set; }
         }
 
         private sealed class CommentItem

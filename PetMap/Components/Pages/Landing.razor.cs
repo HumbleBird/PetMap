@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.JSInterop;
+using Microsoft.EntityFrameworkCore;
+using PetMap.Data;
 
 namespace PetMap.Components.Pages;
 
@@ -9,6 +11,7 @@ public partial class Landing : ComponentBase, IAsyncDisposable
 {
     [Inject] private IWebHostEnvironment Environment { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private ApplicationDbContext Db { get; set; } = default!;
 
     private LandingPageContent? content;
     private IJSObjectReference? effectsModule;
@@ -41,6 +44,79 @@ public partial class Landing : ComponentBase, IAsyncDisposable
         catch (JsonException)
         {
             content = LandingPageContent.CreatePlaceholder();
+        }
+
+        await LoadRecommendedPlacesAsync();
+    }
+
+    private async Task LoadRecommendedPlacesAsync()
+    {
+        try
+        {
+            var ratingStats = await Db.PlaceRatings.AsNoTracking()
+                .GroupBy(rating => rating.PlaceId)
+                .Select(group => new { PlaceId = group.Key, Average = group.Average(rating => rating.Score), Count = group.Count() })
+                .ToDictionaryAsync(item => item.PlaceId);
+            var views = await Db.PlaceViews.AsNoTracking().GroupBy(view => view.PlaceId)
+                .Select(group => new { PlaceId = group.Key, Count = group.Count() }).ToDictionaryAsync(item => item.PlaceId, item => item.Count);
+            var favorites = await Db.PlaceFavorites.AsNoTracking().GroupBy(item => item.PlaceId)
+                .Select(group => new { PlaceId = group.Key, Count = group.Count() }).ToDictionaryAsync(item => item.PlaceId, item => item.Count);
+            var comments = await Db.PlaceComments.AsNoTracking().GroupBy(item => item.PlaceId)
+                .Select(group => new { PlaceId = group.Key, Count = group.Count(), Likes = group.Sum(comment => comment.LikesCount) })
+                .ToDictionaryAsync(item => item.PlaceId);
+
+            var places = await Db.Places.AsNoTracking()
+                .Select(place => new
+                {
+                    place.Id,
+                    place.Name,
+                    place.Address,
+                    place.Category,
+                    ImageUrl = Db.PlaceImages.Where(image => image.PlaceId == place.Id)
+                        .OrderBy(image => image.Id)
+                        .Select(image => image.FilePath)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+            content!.SamplePlaces = places
+                .Select(place =>
+                {
+                    ratingStats.TryGetValue(place.Id, out var rating);
+                    views.TryGetValue(place.Id, out var viewCount);
+                    favorites.TryGetValue(place.Id, out var favoriteCount);
+                    comments.TryGetValue(place.Id, out var comment);
+                    var reviewCount = rating?.Count ?? 0;
+                    var commentCount = comment?.Count ?? 0;
+                    var likes = comment?.Likes ?? 0;
+                    // 평점 품질과 실제 이용 반응을 함께 반영하고, 로그 점수로 큰 수치 하나가 독점하지 않게 한다.
+                    var score = (rating?.Average ?? 0) * 20
+                        + Math.Log(1 + reviewCount) * 6
+                        + Math.Log(1 + viewCount) * 5
+                        + Math.Log(1 + favoriteCount) * 8
+                        + Math.Log(1 + commentCount) * 8
+                        + Math.Log(1 + likes) * 3;
+                    var addressParts = place.Address.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var region = addressParts.Length >= 2 ? string.Join(' ', addressParts.Take(2)) : place.Address;
+                    return new LandingPlacePreview
+                    {
+                        PlaceId = place.Id,
+                        Name = place.Name,
+                        Category = $"{place.Category} · {region}",
+                        Description = $"★ {(rating?.Average ?? 0):0.0} · 리뷰 {reviewCount} · 조회 {viewCount} · 찜 {favoriteCount} · 댓글 좋아요 {likes}",
+                        Icon = place.Category.Contains("카페") ? "☕" : place.Category.Contains("공원") ? "🌿" : "🐾",
+                        ImageUrl = place.ImageUrl,
+                        PopularityScore = score
+                    };
+                })
+                .OrderByDescending(place => place.PopularityScore)
+                .ThenBy(place => place.Name)
+                .Take(3)
+                .ToList();
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException or InvalidOperationException)
+        {
+            // DB 연결이 없는 개발 환경에서도 랜딩 페이지의 나머지 콘텐츠는 표시한다.
+            content!.SamplePlaces = [];
         }
     }
 
@@ -122,8 +198,11 @@ public sealed class LandingFeature
 
 public sealed class LandingPlacePreview
 {
+    public int PlaceId { get; set; }
     public string Name { get; set; } = "";
     public string Category { get; set; } = "";
     public string Description { get; set; } = "";
     public string Icon { get; set; } = "🐾";
+    public string? ImageUrl { get; set; }
+    public double PopularityScore { get; set; }
 }
