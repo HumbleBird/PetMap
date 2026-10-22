@@ -42,29 +42,31 @@
 .landing-nav a:hover { color: var(--rust); }
 .landing-nav .nav-map-button { padding: 11px 17px; border: 1px solid #28433c; border-radius: 999px; color: #28433c; }
 .nav-map-button span, .primary-action span { margin-left: 9px; }
+.landing-header { animation: landing-enter .55s ease-out both; }
 
 .landing-hero { display: grid; grid-template-columns: .88fr 1.12fr; align-items: center; gap: 34px; min-height: 590px; padding: 42px 0 52px; }
-.hero-copy { position: relative; z-index: 1; padding: 12px 0 20px; }
+.hero-copy { position: relative; z-index: 1; padding: 12px 0 20px; animation: landing-enter .7s .08s ease-out both; }
 .hero-eyebrow, .section-kicker { margin: 0 0 18px; color: #8b7254; font-family: Arial, sans-serif; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
 .hero-copy h1 { max-width: 590px; margin: 0; color: #162b27; font-size: clamp(48px, 6.2vw, 82px); font-weight: 950; letter-spacing: -.08em; line-height: 1.08; }
 .hero-copy h2 { max-width: 490px; margin: 20px 0 15px; font-size: clamp(20px, 2.3vw, 29px); letter-spacing: -.04em; line-height: 1.4; }
 .hero-description { max-width: 460px; margin: 0; color: var(--muted-ink); font-size: 16px; line-height: 1.9; white-space: pre-line; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 28px; }
 .primary-action, .secondary-action { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 20px; border-radius: 8px; font-family: Arial, sans-serif; font-size: 14px; font-weight: 800; text-decoration: none; }
-.primary-action { background: #193630; color: #fff; box-shadow: 0 7px 17px rgba(24, 48, 45, .16); }
-.primary-action:hover { background: #28544a; color: #fff; }
+.primary-action { background: #193630; color: #fff; box-shadow: 0 7px 17px rgba(24, 48, 45, .16); transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+.primary-action:hover { transform: translateY(-2px); background: #28544a; color: #fff; box-shadow: 0 11px 23px rgba(24, 48, 45, .23); }
 .secondary-action { border: 1px solid #cbb99a; color: #48524b; }
 .secondary-action:hover { background: rgba(255,255,255,.5); color: #243c36; }
 .hero-note { margin-top: 29px; color: #81745f; font-size: 12px; }
 .hero-note span { margin-right: 7px; color: var(--rust); }
 
-.hero-keyring { position: relative; display: grid; min-height: 520px; place-items: center; isolation: isolate; }
-.hero-keyring img { position: relative; z-index: 1; display: block; width: min(100%, 500px); max-height: 520px; object-fit: contain; filter: drop-shadow(0 18px 24px rgba(55, 40, 21, .18)); }
+.hero-keyring { position: relative; display: grid; min-height: 520px; place-items: center; isolation: isolate; animation: landing-enter .85s .16s ease-out both; }
+.hero-keyring img { position: relative; z-index: 1; display: block; width: min(100%, 500px); max-height: 520px; object-fit: contain; filter: drop-shadow(0 18px 24px rgba(55, 40, 21, .18)); animation: keyring-float 5.5s ease-in-out 1s infinite; }
 .keyring-caption { position: absolute; right: 0; bottom: 20px; z-index: 2; display: grid; gap: 4px; margin: 0; padding: 12px 17px; border: 1px solid rgba(117, 86, 48, .2); border-radius: 14px; background: rgba(255, 250, 235, .82); color: #3f493f; box-shadow: 0 8px 20px rgba(74, 57, 35, .1); }
 .keyring-caption span { font-size: 14px; font-weight: 900; }.keyring-caption small { color: #7d715e; font-family: Arial, sans-serif; font-size: 10px; }
 
 .feature-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 12px 0 62px; }
-.feature-card { min-height: 285px; padding: 22px 20px; border: 1px solid #dfceb0; border-radius: 15px; background: rgba(255, 252, 244, .48); box-shadow: 0 5px 15px rgba(90, 68, 37, .04); }
+.feature-card { min-height: 285px; padding: 22px 20px; border: 1px solid #dfceb0; border-radius: 15px; background: rgba(255, 252, 244, .62); box-shadow: 0 5px 15px rgba(90, 68, 37, .04); transition: transform .24s ease, box-shadow .24s ease, background .24s ease, border-color .24s ease; }
+.feature-card:hover { transform: translateY(-6px); border-color: #c9ad7f; background: rgba(255, 252, 244, .88); box-shadow: 0 16px 30px rgba(90, 68, 37, .13); }
 .feature-heading { display: flex; align-items: center; gap: 10px; min-height: 42px; }
 .feature-number { display: grid; flex: 0 0 40px; height: 40px; place-items: center; border-radius: 12px; background: #193630; color: #fff8e9; font-family: Arial, sans-serif; font-size: 15px; font-weight: 800; }
 .feature-heading h3 { margin: 0; font-size: clamp(16px, 1.45vw, 20px); font-weight: 900; letter-spacing: -.05em; }
@@ -124,6 +126,22 @@
 .landing-footer p { margin: 0; color: #3b4840; font-size: 19px; font-weight: 800; }
 .landing-footer a { padding: 11px 18px; border-radius: 999px; background: #183932; color: #fff7e8; font-family: Arial,sans-serif; font-size: 13px; font-weight: 800; text-decoration: none; }
 .landing-footer small { color: #8d806a; font-family: Arial,sans-serif; font-size: 10px; }
+
+@keyframes landing-enter { from { opacity: 0; translate: 0 18px; } to { opacity: 1; translate: 0 0; } }
+@keyframes keyring-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -9px; } }
+.landing-page.landing-effects-ready .feature-card,
+.landing-page.landing-effects-ready .guide-section,
+.landing-page.landing-effects-ready .landing-footer { opacity: 0; translate: 0 18px; transition: opacity .65s ease, translate .65s cubic-bezier(.2,.7,.2,1); }
+.landing-page.landing-effects-ready .feature-card.is-visible,
+.landing-page.landing-effects-ready .guide-section.is-visible,
+.landing-page.landing-effects-ready .landing-footer.is-visible { opacity: 1; translate: 0 0; }
+.landing-page.landing-effects-ready .feature-card:nth-child(2) { transition-delay: .08s; }
+.landing-page.landing-effects-ready .feature-card:nth-child(3) { transition-delay: .16s; }
+@media (prefers-reduced-motion: reduce) {
+    .landing-header, .hero-copy, .hero-keyring, .hero-keyring img { animation: none !important; }
+    .landing-page.landing-effects-ready .feature-card, .landing-page.landing-effects-ready .guide-section, .landing-page.landing-effects-ready .landing-footer { opacity: 1; translate: none; transition: none; }
+    .feature-card, .primary-action { transition: none; }
+}
 
 @media (max-width: 900px) {
     .landing-header,.landing-hero,.feature-grid,.guide-section,.landing-footer { width: min(100% - 36px, 720px); }

@@ -1,14 +1,25 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.JSInterop;
 
 namespace PetMap.Components.Pages;
 
-public partial class Landing : ComponentBase
+public partial class Landing : ComponentBase, IAsyncDisposable
 {
     [Inject] private IWebHostEnvironment Environment { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private LandingPageContent? content;
+    private IJSObjectReference? effectsModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        effectsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/src/landingEffects.js");
+        await effectsModule.InvokeVoidAsync("observeLandingSections");
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -30,6 +41,21 @@ public partial class Landing : ComponentBase
         catch (JsonException)
         {
             content = LandingPageContent.CreatePlaceholder();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (effectsModule is null) return;
+
+        try
+        {
+            await effectsModule.InvokeVoidAsync("stopLandingSectionObservation");
+            await effectsModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Navigating away may close the Blazor circuit before module disposal.
         }
     }
 }
