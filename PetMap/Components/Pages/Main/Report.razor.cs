@@ -154,6 +154,19 @@ public partial class Report : ComponentBase, IDisposable
     // 작성한 내용을 제보 테이블에 등록하고 저장 초안과 화면 상태를 정리한다.
     private async Task SubmitReport()
     {
+        if (report.PlaceName.Trim().Length is 0 or > 200
+            || report.Nickname.Trim().Length is 0 or > 80
+            || report.Review.Trim().Length > 4000
+            || (report.Memo?.Length ?? 0) > 2000
+            || (report.BusinessHours?.Length ?? 0) > 500
+            || selectedCategories.Count is 0 or > MaxSelectedCategories
+            || !double.IsFinite(report.Latitude) || !double.IsFinite(report.Longitude)
+            || report.Latitude is < -90 or > 90 || report.Longitude is < -180 or > 180)
+        {
+            errorMessage = "장소 정보와 입력 길이를 확인해 주세요.";
+            return;
+        }
+
         var reportData = new PlaceReport
         {
             Nickname = report.Nickname,

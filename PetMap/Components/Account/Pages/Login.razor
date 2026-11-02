@@ -95,7 +95,7 @@
             var user = await UserManager.FindByEmailAsync(Input.Email);
             result = user?.UserName is null
                 ? SignInResult.Failed
-                : await SignInManager.PasswordSignInAsync(user.UserName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                : await SignInManager.PasswordSignInAsync(user.UserName, Input.Password, Input.RememberMe, lockoutOnFailure: true);
         }
         catch (Exception exception)
         {

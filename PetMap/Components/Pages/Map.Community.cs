@@ -5,6 +5,7 @@ using Microsoft.JSInterop;
 using PetMap.Components.Pages.Models;
 using PetMap.Data.Entities;
 using PetMap.Data.Utiles;
+using PetMap.Services;
 using System.Security.Claims;
 
 namespace PetMap.Components.Pages;
@@ -168,23 +169,22 @@ public partial class Map
             var author = isAuthenticated ? (auth.User.Identity?.Name ?? "회원") : guestName.Trim();
             if (!isAuthenticated && (string.IsNullOrWhiteSpace(author) || string.IsNullOrWhiteSpace(guestPassword)))
             { commentError = "비회원 아이디와 비밀번호를 입력해주세요."; return; }
+            if (commentText.Trim().Length > 2000 || author.Length > 80 || guestPassword.Length > 128)
+            { commentError = "댓글, 작성자 이름 또는 비밀번호 길이를 확인해 주세요."; return; }
+            if (!isAuthenticated && guestPassword.Length < 8)
+            { commentError = "비회원 비밀번호는 8자 이상 입력해 주세요."; return; }
 
             var paths = new List<string>();
-            var folder = Path.Combine(Environment.WebRootPath, "uploads", "comments");
-            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-            if (commentImages.Any(file => file.Size > MaxCommentImageSize || !allowedExtensions.Contains(Path.GetExtension(file.Name))))
+            try
             {
+                foreach (var file in commentImages.Take(5))
+                    paths.Add(await SafeImageStorage.SaveAsync(file, Environment.WebRootPath, "uploads/comments", MaxCommentImageSize));
+            }
+            catch (Exception exception) when (exception is InvalidDataException or IOException)
+            {
+                foreach (var path in paths) SafeImageStorage.Delete(Environment.WebRootPath, path);
                 commentError = "이미지는 JPG, PNG, GIF, WEBP 형식으로 장당 5MB까지 첨부할 수 있습니다.";
                 return;
-            }
-            Directory.CreateDirectory(folder);
-            foreach (var file in commentImages.Take(5))
-            {
-                var extension = Path.GetExtension(file.Name);
-                var fileName = $"{Guid.NewGuid():N}{extension}";
-                await using var stream = File.Create(Path.Combine(folder, fileName));
-                await file.OpenReadStream(MaxCommentImageSize).CopyToAsync(stream);
-                paths.Add($"/uploads/comments/{fileName}");
             }
 
             var comment = new PlaceComment

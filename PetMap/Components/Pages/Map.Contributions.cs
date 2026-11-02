@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using PetMap.Components.Pages.Models;
 using PetMap.Data.Entities;
 using PetMap.Data.Utiles;
+using PetMap.Services;
 using System.Security.Claims;
 
 namespace PetMap.Components.Pages;
@@ -167,11 +168,10 @@ public partial class Map
                 return;
             }
             placeImageFiles = args.GetMultipleFiles(5).ToList();
-            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-            if (placeImageFiles.Any(file => file.Size > MaxCommentImageSize || !allowed.Contains(Path.GetExtension(file.Name))))
+            if (placeImageFiles.Any(file => file.Size <= 0 || file.Size > MaxCommentImageSize))
             {
                 placeImageFiles.Clear();
-                placeContributionMessage = "JPG, PNG, GIF, WEBP 사진만 가능하며 장당 5MB까지 추가할 수 있어요.";
+                placeContributionMessage = "사진은 장당 5MB까지 추가할 수 있어요.";
             }
             else
             {
@@ -182,16 +182,23 @@ public partial class Map
         private async Task UploadPlaceImagesAsync()
         {
             if (selectedPlace is null || placeImageFiles.Count == 0) return;
-            var folder = Path.Combine(Environment.WebRootPath, "uploads", "places", selectedPlace.Id.ToString());
-            Directory.CreateDirectory(folder);
-            foreach (var file in placeImageFiles)
+            var savedPaths = new List<string>();
+            try
             {
-                var extension = Path.GetExtension(file.Name).ToLowerInvariant();
-                var fileName = $"{Guid.NewGuid():N}{extension}";
-                var filePath = Path.Combine(folder, fileName);
-                await using (var stream = File.Create(filePath))
-                    await file.OpenReadStream(MaxCommentImageSize).CopyToAsync(stream);
-                Db.PlaceImages.Add(new PlaceImage { PlaceId = selectedPlace.Id, FilePath = $"/uploads/places/{selectedPlace.Id}/{fileName}" });
+                foreach (var file in placeImageFiles)
+                {
+                    var path = await SafeImageStorage.SaveAsync(file, Environment.WebRootPath, $"uploads/places/{selectedPlace.Id}", MaxCommentImageSize);
+                    savedPaths.Add(path);
+                    Db.PlaceImages.Add(new PlaceImage { PlaceId = selectedPlace.Id, FilePath = path });
+                }
+            }
+            catch (Exception exception) when (exception is InvalidDataException or IOException)
+            {
+                foreach (var path in savedPaths) SafeImageStorage.Delete(Environment.WebRootPath, path);
+                var savedImages = Db.PlaceImages.Local.Where(image => savedPaths.Contains(image.FilePath)).ToList();
+                Db.PlaceImages.RemoveRange(savedImages);
+                placeContributionMessage = "JPG, PNG, GIF, WEBP 사진만 가능하며 장당 5MB까지 추가할 수 있어요.";
+                return;
             }
             await Db.SaveChangesAsync();
             selectedPlaceImages = await Db.PlaceImages.Where(image => image.PlaceId == selectedPlace.Id).Select(image => image.FilePath).ToListAsync();

@@ -136,7 +136,12 @@
     {
         if (!isLoggedIn || currentUserId is null) { formMessage = "로그인 후 이용할 수 있습니다."; return; }
         if (string.IsNullOrWhiteSpace(newTitle)) { formMessage = "코스 이름을 입력해 주세요."; return; }
+        if (newTitle.Trim().Length > 100 || newDescription.Trim().Length > 2000 || newCategory.Trim().Length > 200
+            || newCity.Trim().Length > 80 || newDistrict.Trim().Length > 80 || newNeighborhood.Trim().Length > 80)
+        { formMessage = "입력한 코스 정보의 길이를 확인해 주세요."; return; }
         if (selectedStops.Count == 0) { formMessage = "코스에 넣을 장소를 하나 이상 선택해 주세요."; return; }
+        if (selectedStops.Count > 50 || selectedStops.Any(id => availablePlaces.All(place => place.Id != id)))
+        { formMessage = "코스 장소를 다시 선택해 주세요. 한 코스에는 장소를 최대 50곳까지 추가할 수 있습니다."; return; }
         isSaving = true;
         var selectedPlaces = availablePlaces.Where(place => selectedStops.Contains(place.Id)).ToList();
         var course = new PetCourse { UserId = currentUserId, Title = newTitle.Trim(), Description = newDescription.Trim(), Category = string.IsNullOrWhiteSpace(newCategory) ? string.Join(" · ", selectedPlaces.Select(place => place.Category).Distinct()) : newCategory.Trim(), City = newCity.Trim(), District = newDistrict.Trim(), Neighborhood = newNeighborhood.Trim(), IsPublic = isPublic, CreatedAtUtc = DateTime.UtcNow, Stops = selectedStops.Select((placeId, index) => new PetCourseStop { PlaceId = placeId, SortOrder = index + 1 }).ToList() };
