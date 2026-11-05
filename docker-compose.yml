@@ -1,0 +1,92 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
+      MSSQL_MEMORY_LIMIT_MB: "1536"
+      MSSQL_DB: PetMapDB
+      MSSQL_USER: petmap_app
+      MSSQL_PASSWORD: ${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}
+    volumes:
+      - sql_data:/var/opt/mssql
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" -b"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    networks:
+      - database
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      AllowedHosts: ${DOMAIN:?Set DOMAIN in .env}
+      ReverseProxy__KnownProxies__0: 172.30.0.2
+      DataProtection__KeyDirectory: /var/lib/petmap/keys
+      Database__ApplyMigrationsOnStartup: "true"
+      ConnectionStrings__DefaultConnection: "Server=db;Database=PetMapDB;User ID=petmap_app;Password=${DB_APP_PASSWORD};Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Email__Smtp__Host: ${SMTP_HOST:?Set SMTP_HOST in .env}
+      Email__Smtp__Port: ${SMTP_PORT:-587}
+      Email__Smtp__Username: ${SMTP_USERNAME:?Set SMTP_USERNAME in .env}
+      Email__Smtp__Password: ${SMTP_PASSWORD:?Set SMTP_PASSWORD in .env}
+      Email__Smtp__FromAddress: ${SMTP_FROM_ADDRESS:?Set SMTP_FROM_ADDRESS in .env}
+      Email__Smtp__FromName: ${SMTP_FROM_NAME:-PetMap}
+      Admin__Email: ${ADMIN_EMAIL:-}
+    volumes:
+      - app_uploads:/app/wwwroot/uploads
+      - data_protection_keys:/var/lib/petmap/keys
+    mem_limit: 1g
+    expose:
+      - "8080"
+    networks:
+      - public_proxy
+      - database
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      public_proxy:
+        ipv4_address: 172.30.0.2
+
+volumes:
+  sql_data:
+  app_uploads:
+  data_protection_keys:
+  caddy_data:
+  caddy_config:
+
+networks:
+  public_proxy:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+  database:
+    internal: true

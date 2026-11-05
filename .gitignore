@@ -2,6 +2,9 @@
 .vs/
 bin/
 obj/
+.env
+.env.*
+!.env.example
 
 # User-specific files
 *.user

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using PetMap.Components;
@@ -92,6 +93,15 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 if (!builder.Environment.IsDevelopment())
 {
+    var keyDirectory = builder.Configuration["DataProtection:KeyDirectory"];
+    if (string.IsNullOrWhiteSpace(keyDirectory))
+        throw new InvalidOperationException("운영 환경에는 영구 Data Protection 키 경로를 설정해야 합니다.");
+
+    Directory.CreateDirectory(keyDirectory);
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keyDirectory))
+        .SetApplicationName("PetMap");
+
     var allowedHosts = builder.Configuration["AllowedHosts"];
     if (string.IsNullOrWhiteSpace(allowedHosts)
         || allowedHosts.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Contains("*"))
@@ -103,6 +113,14 @@ if (!builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 app.UseForwardedHeaders();
+
+if (app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    var contextFactory = migrationScope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+    await using var dbContext = await contextFactory.CreateDbContextAsync();
+    await dbContext.Database.MigrateAsync();
+}
 
 // Admin 역할을 보장하고 설정된 이메일 계정에 역할을 부여한다.
 using (var scope = app.Services.CreateScope())
