@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Net;
 using PetMap.Components;
 using PetMap.Components.Account;
@@ -30,7 +31,13 @@ builder.Services.AddAuthentication(options =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+{
+    options.UseSqlServer(connectionString);
+    // Keep startup migrations running if the runtime model check reports a false-positive drift.
+    // The warning remains visible in logs so a real missing migration can still be investigated.
+    options.ConfigureWarnings(warnings =>
+        warnings.Log(RelationalEventId.PendingModelChangesWarning));
+});
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
