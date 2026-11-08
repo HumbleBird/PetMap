@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-PetMap-3a11bb2d-8aca-4897-bc1f-cd138149949b</UserSecretsId>
