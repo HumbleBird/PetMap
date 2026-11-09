@@ -226,6 +226,16 @@
                         <p class="place-contribution-message">@placeContributionMessage</p>
                     }
                 </div>
+                <h3>전화번호</h3>
+                <div class="place-contribute-form">
+                    <label for="place-phone-input">장소 전화번호</label>
+                    <InputText id="place-phone-input" type="tel" @bind-Value="newPhone" maxlength="40" placeholder="예: 02-1234-5678" />
+                    <button type="button" @onclick="SavePlacePhoneAsync" disabled="@(string.IsNullOrWhiteSpace(newPhone) || newPhone.Trim() == selectedPlace.Phone)">전화번호 저장</button>
+                    @if (!string.IsNullOrWhiteSpace(phoneContributionMessage))
+                    {
+                        <p class="place-contribution-message" role="status">@phoneContributionMessage</p>
+                    }
+                </div>
                 <h3>메모</h3><p>@(selectedPlace.Memo ?? selectedPlace.Description ?? "등록된 메모가 없습니다.")</p>
                 <h3>종합평점</h3>
                 <div class="place-rating-summary">@(selectedPlace.RatingCount > 0 ? $"★ {selectedPlace.AverageRating:F1} ({selectedPlace.RatingCount}명)" : "아직 평가가 없습니다.")</div>

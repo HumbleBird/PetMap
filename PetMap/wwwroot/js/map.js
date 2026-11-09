@@ -17,6 +17,7 @@ window.petMap = {
                 const results = status === kakao.maps.services.Status.OK
                     ? data.slice(0, 5).map(place => ({
                         Name: place.place_name,
+                        Phone: place.phone,
                         RoadAddress: place.road_address_name,
                         JibunAddress: place.address_name,
                         PlaceUrl: place.place_url,

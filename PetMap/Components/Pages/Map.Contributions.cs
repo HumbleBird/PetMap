@@ -158,6 +158,26 @@ public partial class Map
             placeContributionMessage = "영업시간을 추가했습니다.";
         }
 
+        private async Task SavePlacePhoneAsync()
+        {
+            if (selectedPlace is null) return;
+            if (string.IsNullOrWhiteSpace(newPhone) || newPhone.Trim().Length > 40)
+            {
+                phoneContributionMessage = "전화번호를 입력해 주세요. 최대 40자까지 가능합니다.";
+                return;
+            }
+
+            var phone = newPhone.Trim();
+            var place = await Db.Places.FindAsync(selectedPlace.Id);
+            if (place is null) return;
+
+            place.Phone = phone;
+            await Db.SaveChangesAsync();
+            selectedPlace.Phone = phone;
+            newPhone = phone;
+            phoneContributionMessage = "전화번호를 저장했습니다.";
+        }
+
         private void HandlePlaceImageSelection(InputFileChangeEventArgs args)
         {
             placeContributionMessage = "";

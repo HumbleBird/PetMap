@@ -56,6 +56,7 @@ public partial class Report : ComponentBase, IDisposable
     public class KakaoPlaceResult
     {
         public string Name { get; set; } = "";
+        public string Phone { get; set; } = "";
         public string RoadAddress { get; set; } = "";
         public string JibunAddress { get; set; } = "";
 
@@ -108,10 +109,15 @@ public partial class Report : ComponentBase, IDisposable
         report = new PlaceReport
         {
             Nickname = user.Identity?.IsAuthenticated == true ? user.Identity.Name ?? "회원" : "방문자",
+            TargetPlaceId = place.Id,
             PlaceName = place.Name,
+            Address = place.Address,
+            RoadAddress = place.RoadAddress ?? "",
+            JibunAddress = place.JibunAddress ?? "",
             Category = place.Category,
             Latitude = place.Latitude,
             Longitude = place.Longitude,
+            Phone = place.Phone,
             NaverPlaceUrl = place.NaverPlaceUrl,
             BusinessHours = place.BusinessHours,
             Review = place.Description ?? "",
@@ -170,8 +176,13 @@ public partial class Report : ComponentBase, IDisposable
         var reportData = new PlaceReport
         {
             Nickname = report.Nickname,
+            TargetPlaceId = report.TargetPlaceId,
             PlaceName = report.PlaceName,
             Category = string.Join(", ", selectedCategories),
+            Address = string.IsNullOrWhiteSpace(report.Address) ? report.RoadAddress : report.Address,
+            RoadAddress = report.RoadAddress,
+            JibunAddress = report.JibunAddress,
+            Phone = report.Phone,
 
             Latitude = report.Latitude,
             Longitude = report.Longitude,
@@ -227,6 +238,10 @@ public partial class Report : ComponentBase, IDisposable
     private void SelectPlace(KakaoPlaceResult result)
     {
         report.PlaceName = result.Name;
+        report.Address = string.IsNullOrWhiteSpace(result.RoadAddress) ? result.JibunAddress : result.RoadAddress;
+        report.RoadAddress = result.RoadAddress;
+        report.JibunAddress = result.JibunAddress;
+        report.Phone = result.Phone;
         report.Latitude = result.Latitude;
         report.Longitude = result.Longitude;
         report.NaverPlaceUrl = result.PlaceUrl;

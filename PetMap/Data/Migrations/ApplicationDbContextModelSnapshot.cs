@@ -666,6 +666,9 @@ namespace PetMap.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("AdminComment")
                         .HasColumnType("nvarchar(max)");
 
@@ -678,6 +681,9 @@ namespace PetMap.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("JibunAddress")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("float");
@@ -695,6 +701,9 @@ namespace PetMap.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PlaceName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -703,7 +712,13 @@ namespace PetMap.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("RoadAddress")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetPlaceId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");

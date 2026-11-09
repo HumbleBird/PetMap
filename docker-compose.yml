@@ -53,8 +53,9 @@ services:
     expose:
       - "8080"
     networks:
-      - public_proxy
-      - database
+      public_proxy:
+        ipv4_address: 172.30.0.3
+      database: {}
 
   caddy:
     image: caddy:2

@@ -31,6 +31,8 @@ namespace PetMap.Components.Pages
         private bool isSavedPlacesPanelOpen;
         private string newPlaceTags = "";
         private string newBusinessHours = "";
+        private string newPhone = "";
+        private string phoneContributionMessage = "";
         private string placeReportReason = "";
         private string placeReportMessage = "";
         private string placeContributionMessage = "";
@@ -155,6 +157,8 @@ namespace PetMap.Components.Pages
             showBusinessHoursEditor = false;
             newPlaceTags = "";
             newBusinessHours = "";
+            newPhone = place.Phone ?? "";
+            phoneContributionMessage = "";
             placeContributionMessage = "";
             shareMessage = "";
             placeImageFiles.Clear();
@@ -168,6 +172,7 @@ namespace PetMap.Components.Pages
                 Category = place.Category,
                 RestaurantType = place.RestaurantType,
                 Menu = place.Menu,
+                Phone = place.Phone,
                 Description = place.Description,
                 Memo = place.Memo,
                 BusinessHours = place.BusinessHours,
@@ -237,6 +242,7 @@ namespace PetMap.Components.Pages
             public string Category { get; set; } = "";
             public string? RestaurantType { get; set; }
             public string? Menu { get; set; }
+            public string? Phone { get; set; }
             public string? Description { get; set; }
             public string? Memo { get; set; }
             public string? BusinessHours { get; set; }

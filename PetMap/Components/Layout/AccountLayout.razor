@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
 <div class="account-site">
     <header class="account-topbar">
@@ -10,8 +11,8 @@
             <nav class="account-topnav" aria-label="주요 메뉴">
                 <a href="/map"><span aria-hidden="true">⌖</span> 지도</a>
                 <a href="/map"><span aria-hidden="true">♡</span> 장소 제보</a>
-                <a class="active" href="/Account/Login"><span aria-hidden="true">☷</span> 설정</a>
-                <AuthorizeView Roles="Admin"><Authorized><a href="/places"><span aria-hidden="true">⌂</span> 장소 관리</a></Authorized></AuthorizeView>
+                <a class="@(IsPlaceManagement ? "" : "active")" href="/Account/Login"><span aria-hidden="true">☷</span> 설정</a>
+                <AuthorizeView Roles="Admin"><Authorized><a class="@(IsPlaceManagement ? "active" : "")" href="/places"><span aria-hidden="true">⌂</span> 장소 관리</a></Authorized></AuthorizeView>
             </nav>
             <a class="account-map-shortcut" href="/map">지도 보기</a>
         </div>
@@ -35,3 +36,9 @@
         </div>
     </footer>
 </div>
+
+@code {
+    private bool IsPlaceManagement => Navigation.ToBaseRelativePath(Navigation.Uri)
+        .Split('?', '#')[0]
+        .StartsWith("places", StringComparison.OrdinalIgnoreCase);
+}

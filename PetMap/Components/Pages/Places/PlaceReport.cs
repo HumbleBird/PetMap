@@ -10,6 +10,11 @@ public class PlaceReport
     // 장소 정보
     public string PlaceName { get; set; } = "";
     public string Category { get; set; } = "";
+    public string? Address { get; set; }
+    public string? RoadAddress { get; set; }
+    public string? JibunAddress { get; set; }
+    public string? Phone { get; set; }
+    public int? TargetPlaceId { get; set; }
 
     public double Latitude { get; set; }
     public double Longitude { get; set; }

@@ -1,4 +1,5 @@
-﻿@page "/Account/RegisterConfirmation"
+@page "/Account/RegisterConfirmation"
+@layout AccountLayout
 
 @using System.Text
 @using Microsoft.AspNetCore.Identity
@@ -11,23 +12,28 @@
 @inject IdentityRedirectManager RedirectManager
 @inject IWebHostEnvironment Environment
 
-<PageTitle>Register confirmation</PageTitle>
+<PageTitle>이메일 확인 | 댕동여지도</PageTitle>
 
-<h1>Register confirmation</h1>
-
-<StatusMessage Message="@statusMessage" />
-
-@if (emailConfirmationLink is not null && Environment.IsDevelopment())
-{
-    <p>
-        This app does not currently have a real email sender registered, see <a href="https://aka.ms/aspaccountconf">these docs</a> for how to configure a real email sender.
-        Normally this would be emailed: <a href="@emailConfirmationLink">Click here to confirm your account</a>
-    </p>
-}
-else
-{
-    <p role="alert">Please check your email to confirm your account.</p>
-}
+<div class="account-content">
+    <h1 class="account-page-title">회원가입</h1>
+    <section class="account-auth-section account-confirmation-section" aria-labelledby="register-confirmation-title">
+        <span class="account-intro-icon" aria-hidden="true">✉</span>
+        <div>
+            <h2 id="register-confirmation-title">이메일을 확인해 주세요</h2>
+            <p class="account-section-description">가입하신 이메일 주소로 인증 링크를 보냈어요. 메일함에서 링크를 눌러 가입을 완료해 주세요.</p>
+            <StatusMessage Message="@statusMessage" />
+            @if (emailConfirmationLink is not null && Environment.IsDevelopment())
+            {
+                <p class="account-confirmation-note">개발 환경 확인 링크: <a href="@emailConfirmationLink">이메일 확인하기</a></p>
+            }
+            else
+            {
+                <p class="account-confirmation-note" role="status">메일이 보이지 않으면 스팸함도 확인해 주세요.</p>
+            }
+            <a class="btn btn-primary account-confirmation-login" href="/Account/Login">로그인으로 돌아가기</a>
+        </div>
+    </section>
+</div>
 
 @code {
     private string? emailConfirmationLink;
@@ -54,11 +60,10 @@ else
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = "Error finding user for unspecified email";
+            statusMessage = "해당 이메일의 계정을 찾을 수 없습니다.";
         }
         else if (Environment.IsDevelopment() && EmailSender is IdentityNoOpEmailSender)
         {
-            // Once you add a real email sender, you should remove this code that lets you confirm the account
             var userId = await UserManager.GetUserIdAsync(user);
             var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
