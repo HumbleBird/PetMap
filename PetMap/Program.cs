@@ -131,7 +131,7 @@ if (app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
     await dbContext.Database.MigrateAsync();
 }
 
-// Admin 역할을 보장하고 설정된 이메일 계정에 역할을 부여한다.
+// Admin 역할을 보장하고 설정된 이메일 계정들에 역할을 부여한다.
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -147,8 +147,16 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    var adminEmail = app.Configuration["Admin:Email"];
-    if (!string.IsNullOrWhiteSpace(adminEmail))
+    var adminEmails = new[]
+        {
+            app.Configuration["Admin:Email"],
+            app.Configuration["Admin:Emails"]
+        }
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .SelectMany(value => value!.Split([',', ';', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        .Distinct(StringComparer.OrdinalIgnoreCase);
+
+    foreach (var adminEmail in adminEmails)
     {
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
         if (adminUser is not null && !await userManager.IsInRoleAsync(adminUser, adminRole))

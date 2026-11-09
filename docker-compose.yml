@@ -46,6 +46,7 @@ services:
       Email__Smtp__FromAddress: ${SMTP_FROM_ADDRESS:?Set SMTP_FROM_ADDRESS in .env}
       Email__Smtp__FromName: ${SMTP_FROM_NAME:-PetMap}
       Admin__Email: ${ADMIN_EMAIL:-}
+      Admin__Emails: ${ADMIN_EMAILS:-}
     volumes:
       - app_uploads:/app/wwwroot/uploads
       - data_protection_keys:/var/lib/petmap/keys
