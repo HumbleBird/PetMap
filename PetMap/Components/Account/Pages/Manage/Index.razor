@@ -23,6 +23,11 @@
                 <label for="username" class="form-label">아이디</label>
             </div>
             <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Nickname" id="Input.Nickname" class="form-control" autocomplete="nickname" maxlength="30" />
+                <label for="Input.Nickname">닉네임</label>
+                <ValidationMessage For="() => Input.Nickname" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="전화번호를 입력하세요" />
                 <label for="Input.PhoneNumber" class="form-label">전화번호</label>
                 <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
@@ -57,6 +62,7 @@
         username = await UserManager.GetUserNameAsync(user);
         phoneNumber = await UserManager.GetPhoneNumberAsync(user);
 
+        Input.Nickname = string.IsNullOrWhiteSpace(Input.Nickname) ? user.Nickname : Input.Nickname;
         Input.PhoneNumber ??= phoneNumber;
     }
 
@@ -65,6 +71,14 @@
         if (user is null)
         {
             RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            return;
+        }
+
+        user.Nickname = Input.Nickname.Trim();
+        var updateResult = await UserManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            RedirectManager.RedirectToCurrentPageWithStatus("Error: 닉네임을 저장하지 못했습니다.", HttpContext);
             return;
         }
 
@@ -84,6 +98,11 @@
 
     private sealed class InputModel
     {
+        [Required]
+        [StringLength(30, MinimumLength = 2)]
+        [Display(Name = "Nickname")]
+        public string Nickname { get; set; } = "";
+
         [Phone]
         [Display(Name = "Phone number")]
         public string? PhoneNumber { get; set; }

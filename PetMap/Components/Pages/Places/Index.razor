@@ -17,31 +17,43 @@
     <button type="button" role="tab" aria-selected="@(activeTab == "requests")" class="@(activeTab == "requests" ? "active" : "")" @onclick="SelectRequestsTab">승인 요청 <span>@(approvalRequests?.Count ?? 0)</span></button>
 </div>
 
+<PlaceManagementFilterBar SearchText="@filterSearchText" SearchTextChanged="UpdateFilterSearchText"
+                          SelectedCategory="@filterCategory" SelectedCategoryChanged="UpdateFilterCategory" />
+
 @if (activeTab == "places")
 {
+    <div class="place-management-toolbar">
+        <span>현재 적용된 장소 @(places?.Count ?? 0)건 · 선택 @(selectedPlaceIds.Count)건</span>
+        <div class="place-management-toolbar-actions">
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="SelectAllPlaces" disabled="@(FilteredPlaces.Count == 0)">전체 선택</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ClearPlaceSelection" disabled="@(selectedPlaceIds.Count == 0)">선택 해제</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="DeleteSelectedPlaces" disabled="@(selectedPlaceIds.Count == 0)">선택 삭제</button>
+        </div>
+    </div>
     @if (places is null)
     {
         <p>장소 목록을 불러오는 중...</p>
     }
-    else if (places.Count == 0)
+    else if (FilteredPlaces.Count == 0)
     {
-        <p>등록된 장소가 없습니다.</p>
+        <p class="approval-empty-state">검색 조건에 맞는 장소가 없습니다.</p>
     }
     else
     {
         <div class="table-responsive">
-            <table class="table">
+            <table class="table place-management-table">
                 <thead>
-                    <tr><th>장소명</th><th>카테고리</th><th>주소</th><th>관리</th></tr>
+                    <tr><th scope="col"><span class="visually-hidden">선택</span></th><th>장소명</th><th>카테고리</th><th>주소</th><th>관리</th></tr>
                 </thead>
                 <tbody>
-                    @foreach (var place in places)
+                    @foreach (var place in FilteredPlaces)
                     {
                         <tr @key="place.Id">
+                            <td><input type="checkbox" aria-label="@place.Name 선택" checked="@selectedPlaceIds.Contains(place.Id)" @onchange="args => SetPlaceSelected(place.Id, args.Value is true)" /></td>
                             <td>@place.Name</td><td>@place.Category</td><td>@place.Address</td>
-                            <td>
-                                <button class="btn btn-primary btn-sm" @onclick="() => OpenEditModal(place)">수정</button>
-                                <button class="btn btn-danger btn-sm ms-1" @onclick="() => DeletePlace(place.Id)">삭제</button>
+                            <td class="place-admin-row-actions">
+                                <button type="button" class="btn btn-primary btn-sm" @onclick="() => OpenEditModal(place)">수정</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => DeletePlace(place.Id)">삭제</button>
                             </td>
                         </tr>
                     }
@@ -49,13 +61,17 @@
             </table>
         </div>
     }
+    @if (!string.IsNullOrWhiteSpace(placeActionMessage))
+    {
+        <p class="approval-action-message" role="status">@placeActionMessage</p>
+    }
 }
 else
 {
     <div class="approval-request-toolbar">
-        <span>검토 대기 중인 장소 제보 @((approvalRequests?.Count ?? 0))건</span>
+        <span>검토 대기 중인 장소 제보 @(FilteredRequests.Count)건 · 선택 @(selectedRequestIds.Count)건</span>
         <div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="SelectAllRequests" disabled="@(approvalRequests is null || approvalRequests.Count == 0)">전체 선택</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="SelectAllRequests" disabled="@(FilteredRequests.Count == 0)">전체 선택</button>
             <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ClearRequestSelection" disabled="@(selectedRequestIds.Count == 0)">선택 해제</button>
             <button type="button" class="btn btn-success btn-sm" @onclick="ApproveSelectedRequests" disabled="@(selectedRequestIds.Count == 0)">선택 승인 (@selectedRequestIds.Count)</button>
             <button type="button" class="btn btn-outline-danger btn-sm" @onclick="DeleteSelectedRequests" disabled="@(selectedRequestIds.Count == 0)">선택 삭제</button>
@@ -65,27 +81,25 @@ else
     {
         <p>승인 요청을 불러오는 중...</p>
     }
-    else if (approvalRequests.Count == 0)
+    else if (FilteredRequests.Count == 0)
     {
-        <p class="approval-empty-state">현재 검토할 장소 제보가 없습니다.</p>
+        <p class="approval-empty-state">검색 조건에 맞는 장소 제보가 없습니다.</p>
     }
     else
     {
         <div class="table-responsive">
             <table class="table approval-request-table">
                 <thead>
-                    <tr>
-                        <th scope="col"><span class="visually-hidden">선택</span></th><th scope="col">장소명</th><th scope="col">카테고리</th><th scope="col">주소</th><th scope="col">요청자</th><th scope="col">요청시간</th><th scope="col">관리</th>
-                    </tr>
+                    <tr><th scope="col"><span class="visually-hidden">선택</span></th><th scope="col">장소명</th><th scope="col">카테고리</th><th scope="col">주소</th><th scope="col">요청자</th><th scope="col">요청시간</th><th scope="col">관리</th></tr>
                 </thead>
                 <tbody>
-                    @foreach (var request in approvalRequests)
+                    @foreach (var request in FilteredRequests)
                     {
                         <tr @key="request.Id">
                             <td><input type="checkbox" aria-label="@request.PlaceName 선택" checked="@selectedRequestIds.Contains(request.Id)" @onchange="args => SetRequestSelected(request.Id, args.Value is true)" /></td>
                             <td>@request.PlaceName</td><td>@request.Category</td><td>@GetRequestAddress(request)</td><td>@request.Nickname</td>
                             <td><time datetime="@request.CreatedAt.ToString("O")">@request.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</time></td>
-                            <td class="approval-row-actions">
+                            <td class="place-admin-row-actions">
                                 <button type="button" class="btn btn-primary btn-sm" @onclick="() => OpenReviewModal(request)">수정</button>
                                 <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => DeleteRequest(request.Id)">삭제</button>
                             </td>
@@ -118,50 +132,19 @@ else
                         <InputText class="form-control" @bind-Value="editingPlace.Name" />
                     </div>
 
-                    <fieldset class="mb-3">
-                        <legend class="form-label">카테고리 (최대 3개)</legend>
-                        <nav class="category-tabs" aria-label="카테고리 그룹">
-                            @foreach (var group in categoryGroups)
-                            {
-                                <button type="button"
-                                        class="@(activeCategoryGroupKey == group.Key ? "active" : "")"
-                                        aria-pressed="@(activeCategoryGroupKey == group.Key)"
-                                        @onclick="() => SelectCategoryGroup(group.Key)">
-                                    @group.Title
-                                </button>
-                            }
-                        </nav>
-                        <div class="category-selection-summary">
-                            선택됨: @selectedCategories.Count/3
-                        </div>
-                        <div class="category-grid">
-                            @foreach (var category in GetActiveCategories())
-                            {
-                                var name = category.ToString();
-                                var isSelected = selectedCategories.Contains(name);
-                                var isDisabled = !isSelected && selectedCategories.Count >= 3;
-                                <label class="category-item">
-                                    <input type="checkbox" checked="@isSelected" disabled="@isDisabled"
-                                           @onchange="() => ToggleCategory(name)" />
-                                    <span>@GetCategoryLabel(category)</span>
-                                </label>
-                            }
-                        </div>
-                    </fieldset>
+                    <PlaceCategorySelector @bind-SelectedCategories="selectedCategories" MaxSelected="3" />
 
-                    <div class="mb-3">
-                        <label class="form-label">식당 세부 분류</label>
-                        <InputSelect class="form-select" @bind-Value="editingPlace.RestaurantType">
-                            <option value="">선택 안 함</option>
-                            <option value="한식">한식</option>
-                            <option value="중식">중식</option>
-                            <option value="일식">일식</option>
-                            <option value="양식">양식</option>
-                            <option value="분식">분식</option>
-                            <option value="주점">주점</option>
-                            <option value="기타">기타</option>
-                        </InputSelect>
-                    </div>
+                    @if (selectedCategories.Contains(nameof(AnimalCategory.Restaurant)))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">식당 세부 분류</label>
+                            <InputSelect class="form-select" @bind-Value="editingPlace.RestaurantType">
+                                <option value="">선택 안 함</option><option value="한식">한식</option><option value="중식">중식</option>
+                                <option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option>
+                                <option value="주점">주점</option><option value="기타">기타</option>
+                            </InputSelect>
+                        </div>
+                    }
 
                     <div class="mb-3">
                         <label class="form-label">메뉴 (음식점)</label>
@@ -199,10 +182,6 @@ else
                     <div class="mb-3">
                         <label class="form-label">영업시간</label>
                         <InputTextArea class="form-control" rows="3" @bind-Value="editingPlace.BusinessHours" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">반려동물 출입 기준</label>
-                        <InputTextArea class="form-control" rows="3" @bind-Value="editingPlace.PetEntryCriteria" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">장소 설명</label>
@@ -252,7 +231,18 @@ else
             }
             <EditForm id="place-request-review-form" Model="reviewingRequest">
                 <div class="mb-3"><label class="form-label">장소명</label><InputText class="form-control" @bind-Value="reviewingRequest.PlaceName" /></div>
-                <div class="mb-3"><label class="form-label">카테고리 (쉼표로 구분)</label><InputText class="form-control" @bind-Value="reviewingRequest.Category" /></div>
+                <PlaceCategorySelector @bind-SelectedCategories="requestSelectedCategories" MaxSelected="3" />
+                @if (requestSelectedCategories.Contains(nameof(AnimalCategory.Restaurant)))
+                {
+                    <div class="mb-3">
+                        <label class="form-label">식당 세부 분류</label>
+                        <InputSelect class="form-select" @bind-Value="reviewingRequest.RestaurantType">
+                            <option value="">선택 안 함</option><option value="한식">한식</option><option value="중식">중식</option>
+                            <option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option>
+                            <option value="주점">주점</option><option value="기타">기타</option>
+                        </InputSelect>
+                    </div>
+                }
                 <div class="mb-3"><label class="form-label">주소</label><InputText class="form-control" @bind-Value="reviewingRequest.Address" /></div>
                 <div class="mb-3"><label class="form-label">도로명 주소</label><InputText class="form-control" @bind-Value="reviewingRequest.RoadAddress" /></div>
                 <div class="mb-3"><label class="form-label">지번 주소</label><InputText class="form-control" @bind-Value="reviewingRequest.JibunAddress" /></div>
@@ -275,15 +265,6 @@ else
     </ModalShell>
 }
 
-<style>
-    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
-    .category-item { display: flex; align-items: center; gap: 8px; }
-
-    .category-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
-    .category-tabs button { padding: 9px 5px; border: 0; border-radius: 8px; background: #f2f4f7; color: #667085; }
-    .category-tabs button.active { background: #263c66; color: #fff; font-weight: 600; }
-    .category-selection-summary { padding: 10px 2px; color: #667085; font-size: 13px; }
-</style>
 </div>
 
 @code {
@@ -293,48 +274,60 @@ else
     private PlaceReport? reviewingRequest;
     private List<PlaceReport> reviewQueue = [];
     private HashSet<int> selectedRequestIds = [];
+    private HashSet<int> selectedPlaceIds = [];
     private string activeTab = "places";
     private string? requestActionMessage;
+    private string? placeActionMessage;
     private int reviewIndex;
-    private HashSet<string> selectedCategories = new();
+    private HashSet<string> selectedCategories = new(StringComparer.Ordinal);
+    private HashSet<string> requestSelectedCategories = new(StringComparer.Ordinal);
+    private string filterSearchText = "";
+    private string filterCategory = "";
     private string? validationMessage;
-    private string activeCategoryGroupKey = "Leisure";
+    private IReadOnlyList<Place> FilteredPlaces => FilterPlaces(places ?? []);
+    private IReadOnlyList<PlaceReport> FilteredRequests => FilterRequests(approvalRequests ?? []);
 
-    // 같은 그룹과 카테고리를 지도 필터와 공유한다.
-    private readonly List<CategoryGroup> categoryGroups =
-    [
-        new("Leisure", "여가 & 문화",
-        [
-            AnimalCategory.DogCafe,
-            AnimalCategory.BakeryCafe,
-            AnimalCategory.Restaurant,
-            AnimalCategory.Accommodation,
-            AnimalCategory.Studio,
-            AnimalCategory.ShoppingAndCulture,
-            AnimalCategory.Park
-        ]),
-        new("Care", "케어 & 돌봄",
-        [
-            AnimalCategory.Hospital,
-            AnimalCategory.GroomingShop,
-            AnimalCategory.PetSupplyShop,
-            AnimalCategory.DayCare,
-            AnimalCategory.PetHotel,
-            AnimalCategory.TrainingCenter,
-            AnimalCategory.SelfWash
-        ]),
-        new("Service", "전문 서비스",
-        [
-            AnimalCategory.PetTaxi,
-            AnimalCategory.FuneralService
-        ])
-    ];
+    private IReadOnlyList<Place> FilterPlaces(IEnumerable<Place> source) => source
+        .Where(place => MatchesFilters(place.Name, place.Category))
+        .ToList();
 
-    private sealed record CategoryGroup(string Key, string Title, AnimalCategory[] Categories);
+    private IReadOnlyList<PlaceReport> FilterRequests(IEnumerable<PlaceReport> source) => source
+        .Where(report => MatchesFilters(report.PlaceName, report.Category))
+        .ToList();
+
+    private bool MatchesFilters(string name, string? categories)
+    {
+        if (!string.IsNullOrWhiteSpace(filterSearchText)
+            && !name.Contains(filterSearchText.Trim(), StringComparison.OrdinalIgnoreCase)) return false;
+        if (string.IsNullOrWhiteSpace(filterCategory)) return true;
+        return (categories ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(PlaceCategoryCatalog.Normalize)
+            .Contains(filterCategory, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private Task UpdateFilterSearchText(string value)
+    {
+        filterSearchText = value;
+        ClearFilteredSelection();
+        return Task.CompletedTask;
+    }
+
+    private Task UpdateFilterCategory(string value)
+    {
+        filterCategory = value;
+        ClearFilteredSelection();
+        return Task.CompletedTask;
+    }
+
+    private void ClearFilteredSelection()
+    {
+        selectedPlaceIds.Clear();
+        selectedRequestIds.Clear();
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        places = await Db.Places.OrderBy(place => place.Id).ToListAsync();
+        places = await Db.Places.AsNoTracking().OrderBy(place => place.Id).ToListAsync();
         await LoadPendingRequests();
     }
 
@@ -358,10 +351,37 @@ else
     private static string? FirstNonEmpty(params string?[] values) =>
         values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim();
 
+    private static HashSet<string> ParseCategories(string? value) =>
+        (value ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(PlaceCategoryCatalog.Normalize)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static string SerializeCategories(IEnumerable<string> selected) =>
+        string.Join(", ", Enum.GetValues<AnimalCategory>()
+            .Select(category => category.ToString())
+            .Where(selected.Contains));
+
+    private static bool HasCategory(string? categories, AnimalCategory category) =>
+        ParseCategories(categories).Contains(category.ToString());
+
+    private bool UpdateReviewCategories()
+    {
+        if (reviewingRequest is null) return false;
+        if (requestSelectedCategories.Count is 0 or > 3)
+        {
+            requestActionMessage = "카테고리는 1개 이상 3개 이하로 선택해 주세요.";
+            return false;
+        }
+
+        reviewingRequest.Category = SerializeCategories(requestSelectedCategories);
+        if (!requestSelectedCategories.Contains(nameof(AnimalCategory.Restaurant)))
+            reviewingRequest.RestaurantType = null;
+        return true;
+    }
+
     private void SelectAllRequests()
     {
-        if (approvalRequests is null) return;
-        selectedRequestIds = approvalRequests.Select(report => report.Id).ToHashSet();
+        selectedRequestIds = FilteredRequests.Select(report => report.Id).ToHashSet();
     }
 
     private void ClearRequestSelection() => selectedRequestIds.Clear();
@@ -372,12 +392,23 @@ else
         else selectedRequestIds.Remove(id);
     }
 
+    private void SelectAllPlaces() => selectedPlaceIds = FilteredPlaces.Select(place => place.Id).ToHashSet();
+
+    private void ClearPlaceSelection() => selectedPlaceIds.Clear();
+
+    private void SetPlaceSelected(int id, bool selected)
+    {
+        if (selected) selectedPlaceIds.Add(id);
+        else selectedPlaceIds.Remove(id);
+    }
+
     private static PlaceReport CopyReport(PlaceReport report) => new()
     {
         Id = report.Id,
         Nickname = report.Nickname,
         PlaceName = report.PlaceName,
         Category = report.Category,
+        RestaurantType = report.RestaurantType,
         Address = report.Address,
         RoadAddress = report.RoadAddress,
         JibunAddress = report.JibunAddress,
@@ -397,10 +428,11 @@ else
     private void OpenReviewModal(PlaceReport report)
     {
         if (approvalRequests is null) return;
-        reviewQueue = approvalRequests;
+        reviewQueue = FilteredRequests.ToList();
         reviewIndex = reviewQueue.FindIndex(item => item.Id == report.Id);
         if (reviewIndex < 0) return;
         reviewingRequest = CopyReport(reviewQueue[reviewIndex]);
+        requestSelectedCategories = ParseCategories(reviewingRequest.Category);
         requestActionMessage = null;
     }
 
@@ -409,6 +441,7 @@ else
         if (reviewQueue.Count == 0) return;
         reviewIndex = (reviewIndex + offset + reviewQueue.Count) % reviewQueue.Count;
         reviewingRequest = CopyReport(reviewQueue[reviewIndex]);
+        requestSelectedCategories = ParseCategories(reviewingRequest.Category);
         requestActionMessage = null;
     }
 
@@ -435,13 +468,14 @@ else
 
     private async Task SaveRequestEdit()
     {
+        if (reviewingRequest is null || !UpdateReviewCategories()) return;
         if (reviewingRequest is null || !ValidateRequest(reviewingRequest)) return;
         var request = await Db.PlaceReports.FindAsync(reviewingRequest.Id);
         if (request is null) return;
         Db.Entry(request).CurrentValues.SetValues(reviewingRequest);
         await Db.SaveChangesAsync();
         await LoadPendingRequests();
-        reviewQueue = approvalRequests ?? [];
+        reviewQueue = FilteredRequests.ToList();
         reviewIndex = reviewQueue.FindIndex(item => item.Id == request.Id);
         reviewingRequest = reviewIndex >= 0 ? CopyReport(reviewQueue[reviewIndex]) : null;
         requestActionMessage = "제보 내용을 저장했어요.";
@@ -473,6 +507,7 @@ else
         place.RoadAddress = FirstNonEmpty(report.RoadAddress, place.RoadAddress);
         place.JibunAddress = FirstNonEmpty(report.JibunAddress, place.JibunAddress);
         place.Phone = FirstNonEmpty(report.Phone, place.Phone);
+        place.RestaurantType = HasCategory(report.Category, AnimalCategory.Restaurant) ? report.RestaurantType : null;
         place.Latitude = report.Latitude;
         place.Longitude = report.Longitude;
         place.NaverPlaceUrl = FirstNonEmpty(report.NaverPlaceUrl, place.NaverPlaceUrl);
@@ -491,7 +526,7 @@ else
 
     private async Task ApproveCurrentRequest()
     {
-        if (reviewingRequest is null || !ValidateRequest(reviewingRequest)) return;
+        if (reviewingRequest is null || !UpdateReviewCategories() || !ValidateRequest(reviewingRequest)) return;
         var request = await Db.PlaceReports.FindAsync(reviewingRequest.Id);
         if (request is null) return;
         var originalRequest = CopyReport(request);
@@ -502,7 +537,7 @@ else
             return;
         }
         await Db.SaveChangesAsync();
-        places = await Db.Places.OrderBy(place => place.Id).ToListAsync();
+        places = await Db.Places.AsNoTracking().OrderBy(place => place.Id).ToListAsync();
         selectedRequestIds.Remove(request.Id);
         await LoadPendingRequests();
         CloseReviewModal();
@@ -527,7 +562,7 @@ else
 
         await Db.SaveChangesAsync();
         selectedRequestIds.ExceptWith(approvedIds);
-        places = await Db.Places.OrderBy(place => place.Id).ToListAsync();
+        places = await Db.Places.AsNoTracking().OrderBy(place => place.Id).ToListAsync();
         await LoadPendingRequests();
         requestActionMessage = $"{approvedIds.Count}건을 승인했어요.";
     }
@@ -562,11 +597,7 @@ else
     private void OpenEditModal(Place place)
     {
         editingPlace = CopyPlace(place);
-        selectedCategories = place.Category
-            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(NormalizeCategory)
-            .ToHashSet(StringComparer.Ordinal);
-        activeCategoryGroupKey = "Leisure";
+        selectedCategories = ParseCategories(place.Category);
         validationMessage = null;
     }
 
@@ -583,7 +614,6 @@ else
         RestaurantType = place.RestaurantType,
         Menu = place.Menu,
         Phone = place.Phone,
-        PetEntryCriteria = place.PetEntryCriteria,
         Description = place.Description,
         NaverPlaceUrl = place.NaverPlaceUrl,
         BusinessHours = place.BusinessHours,
@@ -592,57 +622,13 @@ else
         Memo = place.Memo
     };
 
-    // 예전 화면에서 저장한 한글 카테고리 값도 새 enum과 연결한다.
-    private static string NormalizeCategory(string category) => category switch
-    {
-        "동물병원" => nameof(AnimalCategory.Hospital),
-        "용품점" => nameof(AnimalCategory.PetSupplyShop),
-        "공원" => nameof(AnimalCategory.Park),
-        "미용" => nameof(AnimalCategory.GroomingShop),
-        _ => category
-    };
-
-    private void SelectCategoryGroup(string key) => activeCategoryGroupKey = key;
-
-    private IEnumerable<AnimalCategory> GetActiveCategories() => categoryGroups
-        .First(group => group.Key == activeCategoryGroupKey)
-        .Categories;
-
-    private static string GetCategoryLabel(AnimalCategory category) => category switch
-    {
-        AnimalCategory.DogCafe => "애견 전용 카페 / 운동장",
-        AnimalCategory.BakeryCafe => "애견 동반 카페 / 베이커리",
-        AnimalCategory.Restaurant => "애견 동반 식당",
-        AnimalCategory.Accommodation => "애견 동반 숙소",
-        AnimalCategory.Studio => "사진관 / 스튜디오",
-        AnimalCategory.ShoppingAndCulture => "쇼핑 / 문화",
-        AnimalCategory.Park => "공원",
-        AnimalCategory.Hospital => "동물병원",
-        AnimalCategory.GroomingShop => "애견 미용실",
-        AnimalCategory.PetSupplyShop => "애견 용품점",
-        AnimalCategory.DayCare => "유치원 / 데이케어",
-        AnimalCategory.PetHotel => "애견 호텔",
-        AnimalCategory.TrainingCenter => "훈련소 / 행동 교정",
-        AnimalCategory.SelfWash => "셀프 목욕탕",
-        AnimalCategory.PetTaxi => "펫택시",
-        AnimalCategory.FuneralService => "장례 / 추모 시설",
-        _ => category.ToString()
-    };
-
-    private void ToggleCategory(string category)
-    {
-        validationMessage = null;
-        if (!selectedCategories.Remove(category) && selectedCategories.Count < 3)
-            selectedCategories.Add(category);
-    }
-
     // 폼에서 저장을 누를 때만 원본 엔티티를 갱신하고 DB에 반영한다.
     private async Task SaveEdit()
     {
         if (editingPlace is null) return;
-        if (selectedCategories.Count == 0)
+        if (selectedCategories.Count is 0 or > 3)
         {
-            validationMessage = "카테고리를 하나 이상 선택해주세요.";
+            validationMessage = "카테고리는 1개 이상 3개 이하로 선택해주세요.";
             return;
         }
 
@@ -651,10 +637,19 @@ else
 
         var categoryOrder = Enum.GetNames<AnimalCategory>();
         editingPlace.Category = string.Join(", ", categoryOrder.Where(selectedCategories.Contains));
+        if (!selectedCategories.Contains(nameof(AnimalCategory.Restaurant))) editingPlace.RestaurantType = null;
         Db.Entry(original).CurrentValues.SetValues(editingPlace);
-        await Db.SaveChangesAsync();
+        try
+        {
+            await Db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            validationMessage = "장소를 저장하지 못했어요. 입력값을 확인한 뒤 다시 시도해 주세요.";
+            return;
+        }
 
-        places = await Db.Places.OrderBy(place => place.Id).ToListAsync();
+        places = await Db.Places.AsNoTracking().OrderBy(place => place.Id).ToListAsync();
         CloseEditModal();
     }
 
@@ -664,13 +659,42 @@ else
         validationMessage = null;
     }
 
-    private async Task DeletePlace(int id)
-    {
-        var place = await Db.Places.FindAsync(id);
-        if (place is null) return;
+    private async Task DeletePlace(int id) => await DeletePlaces([id]);
 
-        Db.Places.Remove(place);
-        await Db.SaveChangesAsync();
-        places = await Db.Places.OrderBy(item => item.Id).ToListAsync();
+    private async Task DeleteSelectedPlaces()
+    {
+        if (selectedPlaceIds.Count > 0)
+            await DeletePlaces(selectedPlaceIds.ToArray());
+    }
+
+    private async Task DeletePlaces(int[] ids)
+    {
+        var idSet = ids.ToHashSet();
+        if (idSet.Count == 0) return;
+
+        await using var transaction = await Db.Database.BeginTransactionAsync();
+        try
+        {
+            var courseStops = await Db.PetCourseStops.Where(stop => idSet.Contains(stop.PlaceId)).ToListAsync();
+            Db.PetCourseStops.RemoveRange(courseStops);
+            var toDelete = await Db.Places.Where(place => idSet.Contains(place.Id)).ToListAsync();
+            if (toDelete.Count == 0) return;
+
+            Db.Places.RemoveRange(toDelete);
+            await Db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            selectedPlaceIds.ExceptWith(idSet);
+            if (editingPlace is not null && idSet.Contains(editingPlace.Id)) CloseEditModal();
+            places = await Db.Places.AsNoTracking().OrderBy(place => place.Id).ToListAsync();
+            placeActionMessage = $"{toDelete.Count}곳을 삭제했어요. 연결된 코스의 해당 장소 항목도 제거했어요.";
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            Db.ChangeTracker.Clear();
+            places = await Db.Places.AsNoTracking().OrderBy(place => place.Id).ToListAsync();
+            placeActionMessage = "장소를 삭제하지 못했어요. 연결된 데이터가 있어 삭제가 제한되는지 확인해 주세요.";
+        }
     }
 }

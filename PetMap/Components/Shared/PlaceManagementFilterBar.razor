@@ -1,0 +1,28 @@
+@using PetMap.Data.Utiles
+
+<div class="place-management-filter-bar">
+    <label class="place-management-search">
+        <span>장소명 검색</span>
+        <input class="form-control" value="@SearchText" @oninput="HandleSearchInput" placeholder="장소명을 입력하세요" />
+    </label>
+    <label class="place-management-category-filter">
+        <span>카테고리</span>
+        <select class="form-select" value="@SelectedCategory" @onchange="HandleCategoryChange">
+            <option value="">전체 카테고리</option>
+            @foreach (var category in Enum.GetValues<AnimalCategory>())
+            {
+                <option value="@category">@PlaceCategoryCatalog.GetFilterLabel(category)</option>
+            }
+        </select>
+    </label>
+</div>
+
+@code {
+    [Parameter] public string SearchText { get; set; } = "";
+    [Parameter] public EventCallback<string> SearchTextChanged { get; set; }
+    [Parameter] public string SelectedCategory { get; set; } = "";
+    [Parameter] public EventCallback<string> SelectedCategoryChanged { get; set; }
+
+    private Task HandleSearchInput(ChangeEventArgs args) => SearchTextChanged.InvokeAsync(args.Value?.ToString() ?? "");
+    private Task HandleCategoryChange(ChangeEventArgs args) => SelectedCategoryChanged.InvokeAsync(args.Value?.ToString() ?? "");
+}

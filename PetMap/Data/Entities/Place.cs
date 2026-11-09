@@ -25,8 +25,6 @@ public class Place
 
     public string? Phone { get; set; }
 
-    public string? PetEntryCriteria { get; set; }
-
     public string? Description { get; set; }
 
     public string? NaverPlaceUrl { get; set; }

@@ -1,0 +1,9 @@
+.place-category-selector { margin: 0 0 1rem; padding: 0; border: 0; }
+.place-category-selector legend { float: none; width: auto; margin-bottom: 10px; }
+.place-category-selector .category-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.place-category-selector .category-tabs button { padding: 9px 5px; border: 0; border-radius: 8px; background: #f2f4f7; color: #667085; }
+.place-category-selector .category-tabs button.active { background: #263c66; color: #fff; font-weight: 600; }
+.place-category-selector .category-selection-summary { padding: 10px 2px; color: #667085; font-size: 13px; }
+.place-category-selector .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.place-category-selector .category-item { display: flex; align-items: center; gap: 8px; }
+.place-category-selector .category-warning { margin-top: 8px; color: #b42318; font-size: 12px; }

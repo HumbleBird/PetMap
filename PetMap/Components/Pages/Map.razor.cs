@@ -85,7 +85,6 @@ namespace PetMap.Components.Pages
                         p.Phone,
                         p.BusinessHours,
                         p.RestaurantType,
-                        p.PetEntryCriteria,
                         AverageRating = Db.PlaceRatings
                             .Where(rating => rating.PlaceId == p.Id)
                             .Select(rating => (double?)rating.Score)

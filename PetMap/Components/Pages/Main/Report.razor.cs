@@ -14,6 +14,8 @@ public partial class Report : ComponentBase, IDisposable
     private PlaceReport report = new PlaceReport(); 
     private bool showReportModal = false;
     private bool editSuggestionMode;
+    private bool currentUserAuthenticated;
+    private string currentUserNickname = "";
     private string searchKeyword = "";
     private int imageCount = 0;
     private int imageInputKey = 0;
@@ -21,38 +23,6 @@ public partial class Report : ComponentBase, IDisposable
 
 
     private List<KakaoPlaceResult> searchResults = new();
-    private string activeCategoryGroupKey = "Leisure";
-    private readonly List<CategoryGroup> categoryGroups =
-    [
-        new("Leisure", "여가 & 문화",
-        [
-            AnimalCategory.DogCafe,
-            AnimalCategory.BakeryCafe,
-            AnimalCategory.Restaurant,
-            AnimalCategory.Accommodation,
-            AnimalCategory.Studio,
-            AnimalCategory.ShoppingAndCulture,
-            AnimalCategory.Park
-        ]),
-        new("Care", "케어 & 돌봄",
-        [
-            AnimalCategory.Hospital,
-            AnimalCategory.GroomingShop,
-            AnimalCategory.PetSupplyShop,
-            AnimalCategory.DayCare,
-            AnimalCategory.PetHotel,
-            AnimalCategory.TrainingCenter,
-            AnimalCategory.SelfWash
-        ]),
-        new("Service", "전문 서비스",
-        [
-            AnimalCategory.PetTaxi,
-            AnimalCategory.FuneralService
-        ])
-    ];
-
-    private sealed record CategoryGroup(string Key, string Title, AnimalCategory[] Categories);
-
     public class KakaoPlaceResult
     {
         public string Name { get; set; } = "";
@@ -79,7 +49,9 @@ public partial class Report : ComponentBase, IDisposable
     private async Task OpenReportModal()
     {
         editSuggestionMode = false;
-        activeCategoryGroupKey = "Leisure";
+        var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        currentUserAuthenticated = user.Identity?.IsAuthenticated == true;
+        currentUserNickname = user.Identity?.Name ?? "회원";
         var draftJson = await LoadTempReportAsync();
         if (!string.IsNullOrWhiteSpace(draftJson))
         {
@@ -96,6 +68,10 @@ public partial class Report : ComponentBase, IDisposable
             }
         }
 
+        report.Nickname = currentUserAuthenticated
+            ? currentUserNickname
+            : string.IsNullOrWhiteSpace(report.Nickname) || report.Nickname == "방문자" ? CreateGuestNickname() : report.Nickname;
+
         showReportModal = true;
     }
 
@@ -106,9 +82,11 @@ public partial class Report : ComponentBase, IDisposable
         if (place is null) return;
 
         var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        currentUserAuthenticated = user.Identity?.IsAuthenticated == true;
+        currentUserNickname = user.Identity?.Name ?? "회원";
         report = new PlaceReport
         {
-            Nickname = user.Identity?.IsAuthenticated == true ? user.Identity.Name ?? "회원" : "방문자",
+            Nickname = currentUserAuthenticated ? currentUserNickname : CreateGuestNickname(),
             TargetPlaceId = place.Id,
             PlaceName = place.Name,
             Address = place.Address,
@@ -118,6 +96,7 @@ public partial class Report : ComponentBase, IDisposable
             Latitude = place.Latitude,
             Longitude = place.Longitude,
             Phone = place.Phone,
+            RestaurantType = place.RestaurantType,
             NaverPlaceUrl = place.NaverPlaceUrl,
             BusinessHours = place.BusinessHours,
             Review = place.Description ?? "",
@@ -125,7 +104,8 @@ public partial class Report : ComponentBase, IDisposable
         };
         selectedCategories = (place.Category ?? "")
             .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .Select(PlaceCategoryCatalog.Normalize)
+            .ToHashSet(StringComparer.Ordinal);
         searchKeyword = place.Name;
         searchResults.Clear();
         errorMessage = "";
@@ -160,8 +140,15 @@ public partial class Report : ComponentBase, IDisposable
     // 작성한 내용을 제보 테이블에 등록하고 저장 초안과 화면 상태를 정리한다.
     private async Task SubmitReport()
     {
+        var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        currentUserAuthenticated = user.Identity?.IsAuthenticated == true;
+        currentUserNickname = user.Identity?.Name ?? "회원";
+        var submitterNickname = currentUserAuthenticated
+            ? currentUserNickname
+            : string.IsNullOrWhiteSpace(report.Nickname) ? CreateGuestNickname() : report.Nickname.Trim();
+
         if (report.PlaceName.Trim().Length is 0 or > 200
-            || report.Nickname.Trim().Length is 0 or > 80
+            || submitterNickname.Length is 0 or > 80
             || report.Review.Trim().Length > 4000
             || (report.Memo?.Length ?? 0) > 2000
             || (report.BusinessHours?.Length ?? 0) > 500
@@ -175,10 +162,11 @@ public partial class Report : ComponentBase, IDisposable
 
         var reportData = new PlaceReport
         {
-            Nickname = report.Nickname,
+            Nickname = submitterNickname,
             TargetPlaceId = report.TargetPlaceId,
             PlaceName = report.PlaceName,
-            Category = string.Join(", ", selectedCategories),
+            Category = SerializeSelectedCategories(selectedCategories),
+            RestaurantType = selectedCategories.Contains(nameof(AnimalCategory.Restaurant)) ? report.RestaurantType : null,
             Address = string.IsNullOrWhiteSpace(report.Address) ? report.RoadAddress : report.Address,
             RoadAddress = report.RoadAddress,
             JibunAddress = report.JibunAddress,
@@ -269,49 +257,20 @@ public partial class Report : ComponentBase, IDisposable
         reportReference?.Dispose();
     }
 
-    private void ToggleCategory(string category)
+    private static string SerializeSelectedCategories(IEnumerable<string> selected) =>
+        string.Join(", ", Enum.GetValues<AnimalCategory>()
+            .Select(category => category.ToString())
+            .Where(selected.Contains));
+
+    private static string CreateGuestNickname()
     {
-        if (selectedCategories.Contains(category))
-        {
-            selectedCategories.Remove(category);
-        }
-        else
-        {
-            if (selectedCategories.Count >= MaxSelectedCategories)
-                return;
-
-            selectedCategories.Add(category);
-        }
-
-        StateHasChanged();
+        string[] adjectives = ["산뜻한", "느긋한", "용감한", "다정한", "호기심 많은", "포근한", "발랄한", "조용한"];
+        string[] animals = ["강아지", "고양이", "수달", "여우", "토끼", "펭귄", "고슴도치", "다람쥐"];
+        var adjective = adjectives[System.Security.Cryptography.RandomNumberGenerator.GetInt32(adjectives.Length)];
+        var animal = animals[System.Security.Cryptography.RandomNumberGenerator.GetInt32(animals.Length)];
+        var suffix = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 10000);
+        return $"{adjective} {animal}{suffix}";
     }
-
-    private void SelectCategoryGroup(string key) => activeCategoryGroupKey = key;
-
-    private IEnumerable<AnimalCategory> GetActiveCategories() => categoryGroups
-        .First(group => group.Key == activeCategoryGroupKey)
-        .Categories;
-
-    private static string GetCategoryLabel(AnimalCategory category) => category switch
-    {
-        AnimalCategory.DogCafe => "애견 전용 카페 / 운동장",
-        AnimalCategory.BakeryCafe => "애견 동반 카페 / 베이커리",
-        AnimalCategory.Restaurant => "애견 동반 식당",
-        AnimalCategory.Accommodation => "애견 동반 숙소",
-        AnimalCategory.Studio => "사진관 / 스튜디오",
-        AnimalCategory.ShoppingAndCulture => "쇼핑 / 문화",
-        AnimalCategory.Park => "공원",
-        AnimalCategory.Hospital => "동물병원",
-        AnimalCategory.GroomingShop => "애견 미용실",
-        AnimalCategory.PetSupplyShop => "애견 용품점",
-        AnimalCategory.DayCare => "유치원 / 데이케어",
-        AnimalCategory.PetHotel => "애견 호텔",
-        AnimalCategory.TrainingCenter => "훈련소 / 행동 교정",
-        AnimalCategory.SelfWash => "셀프 목욕탕",
-        AnimalCategory.PetTaxi => "펫택시",
-        AnimalCategory.FuneralService => "장례 / 추모 시설",
-        _ => category.ToString()
-    };
 
     // 저장 안 함을 선택하면 초안과 입력 상태를 모두 지운다.
     private async Task NotSaveTempReport()
@@ -342,7 +301,10 @@ public partial class Report : ComponentBase, IDisposable
     private void ResetReportForm()
     {
         editSuggestionMode = false;
-        report = new PlaceReport();
+        report = new PlaceReport
+        {
+            Nickname = currentUserAuthenticated ? currentUserNickname : CreateGuestNickname()
+        };
         selectedCategories.Clear();
         searchKeyword = "";
         searchResults.Clear();

@@ -1,0 +1,56 @@
+@using PetMap.Data.Utiles
+
+<fieldset class="place-category-selector">
+    <legend class="form-label">카테고리 (최대 @(MaxSelected)개)</legend>
+    <nav class="category-tabs" aria-label="카테고리 그룹">
+        @foreach (var group in PlaceCategoryCatalog.Groups)
+        {
+            <button type="button" class="@(activeGroupKey == group.Key ? "active" : "")"
+                    aria-pressed="@(activeGroupKey == group.Key)" @onclick="() => activeGroupKey = group.Key">
+                @group.Title
+            </button>
+        }
+    </nav>
+    <div class="category-selection-summary">선택됨: @SelectedCategories.Count/@MaxSelected</div>
+    <div class="category-grid">
+        @foreach (var category in ActiveGroup.Categories)
+        {
+            var name = category.ToString();
+            var selected = SelectedCategories.Contains(name);
+            <label class="category-item">
+                <input type="checkbox" checked="@selected"
+                       disabled="@(!selected && SelectedCategories.Count >= MaxSelected)"
+                       @onchange="args => Toggle(category, args.Value is true)" />
+                <span>@PlaceCategoryCatalog.GetLabel(category)</span>
+            </label>
+        }
+    </div>
+    @if (ShowMinSelectionWarning && SelectedCategories.Count == 0)
+    {
+        <div class="category-warning">카테고리를 최소 1개 선택해 주세요.</div>
+    }
+</fieldset>
+
+@code {
+    [Parameter] public HashSet<string> SelectedCategories { get; set; } = new(StringComparer.Ordinal);
+    [Parameter] public EventCallback<HashSet<string>> SelectedCategoriesChanged { get; set; }
+    [Parameter] public int MaxSelected { get; set; } = 3;
+    [Parameter] public bool ShowMinSelectionWarning { get; set; }
+
+    private string activeGroupKey = "Leisure";
+    private PlaceCategoryGroup ActiveGroup => PlaceCategoryCatalog.Groups.First(group => group.Key == activeGroupKey);
+
+    private async Task Toggle(AnimalCategory category, bool isSelected)
+    {
+        var updated = new HashSet<string>(SelectedCategories, StringComparer.Ordinal);
+        var name = category.ToString();
+        if (isSelected)
+        {
+            if (updated.Count >= MaxSelected) return;
+            updated.Add(name);
+        }
+        else updated.Remove(name);
+
+        await SelectedCategoriesChanged.InvokeAsync(updated);
+    }
+}

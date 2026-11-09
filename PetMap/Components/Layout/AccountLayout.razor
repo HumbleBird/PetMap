@@ -11,7 +11,14 @@
             <nav class="account-topnav" aria-label="주요 메뉴">
                 <a href="/map"><span aria-hidden="true">⌖</span> 지도</a>
                 <a href="/map"><span aria-hidden="true">♡</span> 장소 제보</a>
-                <a class="@(IsPlaceManagement ? "" : "active")" href="/Account/Login"><span aria-hidden="true">☷</span> 설정</a>
+                <AuthorizeView>
+                    <Authorized>
+                        <a class="@(IsPlaceManagement ? "" : "active")" href="/Account/Manage"><span aria-hidden="true">☷</span> 설정</a>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="@(IsPlaceManagement ? "" : "active")" href="/Account/Login"><span aria-hidden="true">☷</span> 설정</a>
+                    </NotAuthorized>
+                </AuthorizeView>
                 <AuthorizeView Roles="Admin"><Authorized><a class="@(IsPlaceManagement ? "active" : "")" href="/places"><span aria-hidden="true">⌂</span> 장소 관리</a></Authorized></AuthorizeView>
             </nav>
             <a class="account-map-shortcut" href="/map">지도 보기</a>

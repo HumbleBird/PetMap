@@ -33,12 +33,12 @@ for row in rows:
     longitude = str(float(row["longitude"]))
     category = literal(row["category"])
     phone = literal(row["phone"]) if row["phone"] else "NULL"
-    criteria = literal(row["note"]) if row["note"] else "NULL"
+    description = literal(row["note"]) if row["note"] else "NULL"
     lines.extend([
         f"IF NOT EXISTS (SELECT 1 FROM dbo.Places WHERE Name = {name} AND (Address = {address} OR RoadAddress = {road_address}))",
         "BEGIN",
-        "    INSERT INTO dbo.Places (Name, Address, RoadAddress, Latitude, Longitude, Category, Phone, PetEntryCriteria)",
-        f"    VALUES ({name}, {address}, {road_address}, {latitude}, {longitude}, {category}, {phone}, {criteria});",
+        "    INSERT INTO dbo.Places (Name, Address, RoadAddress, Latitude, Longitude, Category, Phone, Description)",
+        f"    VALUES ({name}, {address}, {road_address}, {latitude}, {longitude}, {category}, {phone}, {description});",
         "END;",
         "",
     ])

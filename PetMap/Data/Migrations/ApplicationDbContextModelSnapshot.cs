@@ -180,6 +180,11 @@ namespace PetMap.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Nickname")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -415,9 +420,6 @@ namespace PetMap.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Nickname")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PetEntryCriteria")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
@@ -706,6 +708,9 @@ namespace PetMap.Migrations
 
                     b.Property<string>("PlaceName")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RestaurantType")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Review")

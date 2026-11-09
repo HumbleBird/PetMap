@@ -30,36 +30,19 @@ else
             <InputText class="form-control" @bind-Value="place.Name" />
         </div>
 
-        <fieldset class="mb-3">
-            <legend class="form-label">카테고리 (최대 3개)</legend>
-            <div class="category-grid">
-                @foreach (var category in Enum.GetValues<AnimalCategory>())
-                {
-                    var name = category.ToString();
-                    var isSelected = selectedCategories.Contains(name);
-                    var isDisabled = !isSelected && selectedCategories.Count >= 3;
-                    <label class="category-item">
-                        <input type="checkbox" checked="@isSelected" disabled="@isDisabled"
-                               @onchange="() => ToggleCategory(name)" />
-                        <span>@name</span>
-                    </label>
-                }
-            </div>
-        </fieldset>
+        <PlaceCategorySelector @bind-SelectedCategories="selectedCategories" MaxSelected="3" />
 
-        <div class="mb-3">
-            <label class="form-label">식당 세부 분류</label>
-            <InputSelect class="form-select" @bind-Value="place.RestaurantType">
-                <option value="">선택 안 함</option>
-                <option value="한식">한식</option>
-                <option value="중식">중식</option>
-                <option value="일식">일식</option>
-                <option value="양식">양식</option>
-                <option value="분식">분식</option>
-                <option value="주점">주점</option>
-                <option value="기타">기타</option>
-            </InputSelect>
-        </div>
+        @if (selectedCategories.Contains(nameof(AnimalCategory.Restaurant)))
+        {
+            <div class="mb-3">
+                <label class="form-label">식당 세부 분류</label>
+                <InputSelect class="form-select" @bind-Value="place.RestaurantType">
+                    <option value="">선택 안 함</option><option value="한식">한식</option><option value="중식">중식</option>
+                    <option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option>
+                    <option value="주점">주점</option><option value="기타">기타</option>
+                </InputSelect>
+            </div>
+        }
 
         <div class="mb-3">
             <label class="form-label">메뉴 (음식점)</label>
@@ -97,10 +80,6 @@ else
         <div class="mb-3">
             <label class="form-label">영업시간</label>
             <InputTextArea class="form-control" rows="3" @bind-Value="place.BusinessHours" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">반려동물 출입 기준</label>
-            <InputTextArea class="form-control" rows="3" @bind-Value="place.PetEntryCriteria" />
         </div>
         <div class="mb-3">
             <label class="form-label">장소 설명</label>
@@ -142,40 +121,23 @@ else
 
         selectedCategories = place.Category
             .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(NormalizeCategory)
+            .Select(PlaceCategoryCatalog.Normalize)
             .ToHashSet(StringComparer.Ordinal);
-    }
-
-    // 구형 편집 화면에서 저장한 한글 카테고리를 새 enum 값으로 변환한다.
-    private static string NormalizeCategory(string category) => category switch
-    {
-        "동물병원" => nameof(AnimalCategory.Hospital),
-        "용품점" => nameof(AnimalCategory.PetSupplyShop),
-        "공원" => nameof(AnimalCategory.Park),
-        "미용" => nameof(AnimalCategory.GroomingShop),
-        _ => category
-    };
-
-    // 선택 카테고리는 최대 3개까지 유지한다.
-    private void ToggleCategory(string category)
-    {
-        validationMessage = null;
-        if (!selectedCategories.Remove(category) && selectedCategories.Count < 3)
-            selectedCategories.Add(category);
     }
 
     // 검증 후 편집된 장소 정보를 DB에 저장한다.
     private async Task UpdatePlace()
     {
         if (place is null) return;
-        if (selectedCategories.Count == 0)
+        if (selectedCategories.Count is 0 or > 3)
         {
-            validationMessage = "카테고리를 하나 이상 선택해주세요.";
+            validationMessage = "카테고리는 1개 이상 3개 이하로 선택해주세요.";
             return;
         }
 
         var categoryOrder = Enum.GetNames<AnimalCategory>();
         place.Category = string.Join(", ", categoryOrder.Where(selectedCategories.Contains));
+        if (!selectedCategories.Contains(nameof(AnimalCategory.Restaurant))) place.RestaurantType = null;
         await Db.SaveChangesAsync();
         Navigation.NavigateTo("/places");
     }

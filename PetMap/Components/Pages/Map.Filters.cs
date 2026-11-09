@@ -24,72 +24,7 @@ public partial class Map
         private HashSet<AnimalCategory> draftCategories = new();
 
         // UI 그룹 구성: 새 탭을 추가할 때 이 목록만 확장하면 된다.
-        private readonly List<CategoryGroup> categoryGroups =
-        [
-            new CategoryGroup(
-            "Leisure",
-            "여가 & 문화",
-            new[]
-            {
-                AnimalCategory.DogCafe,
-                AnimalCategory.BakeryCafe,
-                AnimalCategory.Restaurant,
-                AnimalCategory.Accommodation,
-                AnimalCategory.Studio,
-                AnimalCategory.ShoppingAndCulture,
-                AnimalCategory.Park
-            }
-        ),
-
-        new CategoryGroup(
-            "Care",
-            "케어 & 돌봄",
-            new[]
-            {
-                AnimalCategory.Hospital,
-                AnimalCategory.GroomingShop,
-                AnimalCategory.PetSupplyShop,
-                AnimalCategory.DayCare,
-                AnimalCategory.PetHotel,
-                AnimalCategory.TrainingCenter,
-                AnimalCategory.SelfWash
-            }
-        ),
-
-        new CategoryGroup(
-            "Service",
-            "전문 서비스",
-            new[]
-            {
-                AnimalCategory.PetTaxi,
-                AnimalCategory.FuneralService
-            }
-        )
-        ];
-
-        // enum 값과 화면에 표시할 한국어 이름을 분리한다.
-        private readonly Dictionary<AnimalCategory, string> categoryLabels =
-            new()
-            {
-                [AnimalCategory.DogCafe] = "애견 전용 카페 / 운동장",
-                [AnimalCategory.BakeryCafe] = "애견 동반 카페 / 베이커리",
-                [AnimalCategory.Restaurant] = "애견 동반 식당",
-                [AnimalCategory.Accommodation] = "애견 동반 숙소",
-                [AnimalCategory.Studio] = "사진관 / 스튜디오",
-                [AnimalCategory.ShoppingAndCulture] = "쇼핑 / 문화",
-                [AnimalCategory.Park] = "공원",
-
-                [AnimalCategory.Hospital] = "동물병원",
-                [AnimalCategory.GroomingShop] = "애견 미용실",
-                [AnimalCategory.PetSupplyShop] = "애견 용품점",
-                [AnimalCategory.DayCare] = "유치원 / 데이케어",
-                [AnimalCategory.PetHotel] = "애견 호텔",
-                [AnimalCategory.TrainingCenter] = "훈련소 / 행동 교정",
-                [AnimalCategory.SelfWash] = "셀프 목욕탕",
-
-                [AnimalCategory.PetTaxi] = "펫택시",
-                [AnimalCategory.FuneralService] = "장례 / 추모 시설"
-            };
+        private IReadOnlyList<PlaceCategoryGroup> categoryGroups = PlaceCategoryCatalog.Groups;
 
         private int TotalCategoryCount => Enum.GetValues<AnimalCategory>().Length;
 
@@ -101,12 +36,7 @@ public partial class Map
                 ?? Array.Empty<AnimalCategory>();
         }
 
-        private string GetCategoryLabel(AnimalCategory category)
-        {
-            return categoryLabels.TryGetValue(category, out var label)
-                ? label
-                : category.ToString();
-        }
+        private static string GetCategoryLabel(AnimalCategory category) => PlaceCategoryCatalog.GetLabel(category);
 
         private void SelectCategoryGroup(string key)
         {

@@ -111,26 +111,7 @@ public partial class Map
             .Where(selectedSearchCategories.Contains)
             .Select(category => $"{category}:{string.Join(",", selectedSearchSubcategories.TryGetValue(category, out var selected) ? selected.OrderBy(value => value) : Enumerable.Empty<string>())}"));
 
-        private static string GetSearchCategoryLabel(AnimalCategory category) => category switch
-        {
-            AnimalCategory.DogCafe => "애견 카페/운동장",
-            AnimalCategory.BakeryCafe => "동반 카페/베이커리",
-            AnimalCategory.Restaurant => "레스토랑",
-            AnimalCategory.Accommodation => "숙소",
-            AnimalCategory.Studio => "사진관/스튜디오",
-            AnimalCategory.ShoppingAndCulture => "쇼핑/문화",
-            AnimalCategory.Park => "공원",
-            AnimalCategory.Hospital => "동물병원",
-            AnimalCategory.GroomingShop => "미용실",
-            AnimalCategory.PetSupplyShop => "반려동물 용품점",
-            AnimalCategory.DayCare => "유치원/데이케어",
-            AnimalCategory.PetHotel => "애견 호텔",
-            AnimalCategory.TrainingCenter => "훈련소",
-            AnimalCategory.SelfWash => "셀프 목욕",
-            AnimalCategory.PetTaxi => "펫택시",
-            AnimalCategory.FuneralService => "장례/추모 시설",
-            _ => category.ToString()
-        };
+        private static string GetSearchCategoryLabel(AnimalCategory category) => PlaceCategoryCatalog.GetLabel(category);
 
         private static string[] GetSearchSubcategories(AnimalCategory category) => category switch
         {

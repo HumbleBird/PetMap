@@ -39,7 +39,12 @@
         /// <summary> 반려동물 이동 서비스 (펫택시) </summary>
         PetTaxi,
         /// <summary> 반려동물 장례식장 / 추모 시설 </summary>
-        FuneralService
+        FuneralService,
+
+        // 기존 enum 숫자값은 유지하며 그룹별 기타 카테고리를 끝에 추가한다.
+        LeisureOther,
+        CareOther,
+        SpecializedServiceOther
     }
 
 }
