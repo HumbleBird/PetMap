@@ -6,6 +6,9 @@ obj/
 .env.*
 !.env.example
 
+# Build output directories under artifacts are generated during local verification.
+artifacts/*-build/
+
 # User-specific files
 *.user
 *.suo

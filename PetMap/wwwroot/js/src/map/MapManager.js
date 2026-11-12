@@ -317,6 +317,41 @@ function searchKakaoCategory(keyword, category, subtype) {
 
 // 위임 이벤트를 사용해 뒤늦게 렌더링된 하위 카테고리에도 휠 이동을 적용한다.
 let searchWheelBound = false;
+let searchDragBound = false;
+export function enableMapSearchDragging() {
+    if (searchDragBound) return;
+    searchDragBound = true;
+    document.addEventListener('pointerdown', event => {
+        const handle = event.target.closest?.('#map-search-drag-handle');
+        const panel = document.getElementById('map-search-panel');
+        if (!handle || !panel || event.target.closest('button')) return;
+        const parent = panel.parentElement;
+        const panelRect = panel.getBoundingClientRect();
+        const parentRect = parent.getBoundingClientRect();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const initialLeft = panelRect.left - parentRect.left;
+        const initialTop = panelRect.top - parentRect.top;
+        panel.style.transform = 'none';
+        panel.style.left = `${initialLeft}px`;
+        panel.style.top = `${initialTop}px`;
+        handle.setPointerCapture?.(event.pointerId);
+        const move = moveEvent => {
+            if (moveEvent.pointerId !== event.pointerId) return;
+            panel.style.left = `${Math.max(0, initialLeft + moveEvent.clientX - startX)}px`;
+            panel.style.top = `${Math.max(0, initialTop + moveEvent.clientY - startY)}px`;
+        };
+        const stop = stopEvent => {
+            if (stopEvent.pointerId !== event.pointerId) return;
+            document.removeEventListener('pointermove', move);
+            document.removeEventListener('pointerup', stop);
+            document.removeEventListener('pointercancel', stop);
+        };
+        document.addEventListener('pointermove', move);
+        document.addEventListener('pointerup', stop);
+        document.addEventListener('pointercancel', stop);
+    });
+}
 export function enableSearchCategoryWheel() {
     if (searchWheelBound) return;
     searchWheelBound = true;

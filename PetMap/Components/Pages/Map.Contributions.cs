@@ -106,6 +106,7 @@ public partial class Map
         {
             if (selectedPlace is null) return;
             var additions = newPlaceTags.Split([',', '，', ';', '；'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(tag => tag.StartsWith('#') ? tag : $"#{tag}")
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             if (additions.Length == 0 || additions.Any(tag => tag.Length > 40))
@@ -178,7 +179,7 @@ public partial class Map
             phoneContributionMessage = "전화번호를 저장했습니다.";
         }
 
-        private void HandlePlaceImageSelection(InputFileChangeEventArgs args)
+        private async Task HandlePlaceImageSelection(InputFileChangeEventArgs args)
         {
             placeContributionMessage = "";
             if (args.FileCount is < 1 or > 5)
@@ -196,6 +197,7 @@ public partial class Map
             else
             {
                 placeContributionMessage = $"사진 {placeImageFiles.Count}장을 선택했습니다.";
+                await UploadPlaceImagesAsync();
             }
         }
 

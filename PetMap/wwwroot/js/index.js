@@ -7,6 +7,7 @@ import {
     searchKakaoPlaces,
     moveToKakaoPlace,
     enableSearchCategoryWheel,
+    enableMapSearchDragging,
     relayoutMap,
     renderPlaceMiniMap,
     focusMapPlace,
@@ -16,6 +17,7 @@ import {
 export async function init(places, options = {}, placeSelectedCallback = null) {
     const result = await initMap(places, options, placeSelectedCallback);
     enableSearchCategoryWheel();
+    enableMapSearchDragging();
     return result;
 }
 

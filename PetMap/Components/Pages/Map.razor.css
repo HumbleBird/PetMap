@@ -309,7 +309,23 @@
     border-radius: 16px;
     background: #fff;
     box-shadow: 0 8px 28px rgba(24, 39, 75, .18);
+    resize: both;
+    overflow: auto;
+    min-width: 280px;
+    min-height: 64px;
+    max-width: calc(100% - 24px);
+    max-height: calc(100% - 24px);
 }
+
+.map-search-window-controls { display:flex; align-items:center; justify-content:space-between; min-height:28px; color:#667085; font-size:12px; font-weight:700; }
+.map-search-window-controls button { border:0; border-radius:6px; background:#f0f2f5; color:#263c66; width:28px; height:26px; font-size:18px; cursor:pointer; }
+#map-search-drag-handle { cursor:move; touch-action:none; }
+.map-search.minimized { width:220px; resize:none; }
+.map-search.minimized .map-search-window-controls { min-height:38px; }
+.place-photo-contribution input[type=file], #report-image-input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+.place-photo-add, .report-image-add { display:inline-flex; align-items:center; justify-content:center; padding:9px 16px; border-radius:9px; background:#263c66; color:white; cursor:pointer; }
+.place-photo-thumbnails { display:flex; gap:8px; overflow-x:auto; margin-bottom:10px; }
+.place-photo-thumbnails img { width:84px; height:84px; object-fit:cover; border-radius:8px; }
 
 .map-filter-toolbar {
     display: flex;

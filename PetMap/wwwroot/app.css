@@ -293,6 +293,8 @@ h1:focus {
 .place-review-arrow { position: fixed; top: 50%; z-index: 1010; display: grid; width: 48px; height: 58px; place-items: center; transform: translateY(-50%); border: 1px solid rgba(255,255,255,.65); border-radius: 14px; background: #fff; color: #344054; box-shadow: 0 5px 20px rgba(0,0,0,.22); font-size: 38px; line-height: 1; cursor: pointer; }
 .place-review-arrow.previous { left: 14px; }
 .place-review-arrow.next { right: 14px; }
+.report-image-add { display: inline-flex; align-items: center; justify-content: center; padding: 9px 16px; border-radius: 9px; background: #263c66; color: #fff; cursor: pointer; }
+#report-image-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 @media (max-width: 640px) {
     .account-confirmation-section { grid-template-columns: 46px minmax(0, 1fr); gap: 12px; }
     .approval-request-toolbar { align-items: flex-start; flex-direction: column; }

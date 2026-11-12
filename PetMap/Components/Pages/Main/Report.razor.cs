@@ -20,6 +20,7 @@ public partial class Report : ComponentBase, IDisposable
     private int imageCount = 0;
     private int imageInputKey = 0;
     private string errorMessage = "";
+    private string initialReportState = "";
 
 
     private List<KakaoPlaceResult> searchResults = new();
@@ -72,6 +73,7 @@ public partial class Report : ComponentBase, IDisposable
             ? currentUserNickname
             : string.IsNullOrWhiteSpace(report.Nickname) || report.Nickname == "방문자" ? CreateGuestNickname() : report.Nickname;
 
+        initialReportState = GetReportState();
         showReportModal = true;
     }
 
@@ -99,7 +101,7 @@ public partial class Report : ComponentBase, IDisposable
             RestaurantType = place.RestaurantType,
             NaverPlaceUrl = place.NaverPlaceUrl,
             BusinessHours = place.BusinessHours,
-            Review = place.Description ?? "",
+            Review = "",
             Memo = place.Memo
         };
         selectedCategories = (place.Category ?? "")
@@ -111,6 +113,7 @@ public partial class Report : ComponentBase, IDisposable
         errorMessage = "";
         imageCount = 0;
         editSuggestionMode = true;
+        initialReportState = GetReportState();
         showReportModal = true;
         await InvokeAsync(StateHasChanged);
     }
@@ -127,8 +130,22 @@ public partial class Report : ComponentBase, IDisposable
         showReportModal = false;
     }
 
-    private void ShowCheckCloseReportModal()
+    private string GetReportState() => System.Text.Json.JsonSerializer.Serialize(new
     {
+        report.Nickname, report.PlaceName, report.Address, report.RoadAddress, report.JibunAddress,
+        report.Category, report.Latitude, report.Longitude, report.Phone, report.RestaurantType,
+        report.NaverPlaceUrl, report.BusinessHours, report.Review, report.Memo,
+        Categories = selectedCategories.OrderBy(value => value).ToArray(), imageCount
+    });
+
+    private void RequestCloseReportModal()
+    {
+        if (GetReportState() == initialReportState)
+        {
+            ShowCloseReportModal = false;
+            CloseReportModal();
+            return;
+        }
         ShowCloseReportModal = true;
     }
 
@@ -178,7 +195,7 @@ public partial class Report : ComponentBase, IDisposable
             NaverPlaceUrl = report.NaverPlaceUrl,
             BusinessHours = report.BusinessHours,
 
-            Review = editSuggestionMode ? $"[정보 수정 제안] {report.Review}" : report.Review,
+            Review = editSuggestionMode ? "" : report.Review,
             Memo = report.Memo,
 
             Status = Status.Pending,

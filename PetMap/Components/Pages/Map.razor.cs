@@ -28,6 +28,7 @@ namespace PetMap.Components.Pages
         private bool showBusinessHoursEditor;
         private bool showPlaceHistoryModal;
         private bool showPlaceReportModal;
+        private bool isMapSearchMinimized;
         private bool isSavedPlacesPanelOpen;
         private string newPlaceTags = "";
         private string newBusinessHours = "";

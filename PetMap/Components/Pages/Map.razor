@@ -181,20 +181,17 @@
                 <div class="place-detail-tags">
                     @foreach (var tag in selectedPlaceTags) { <span>@tag</span> }
                 </div>
-                @if (!HasPlaceTags)
+                @if (!showTagEditor)
                 {
-                    @if (!showTagEditor)
-                    {
-                        <button type="button" class="place-contribute-button" @onclick="() => showTagEditor = true">+ 태그 추가</button>
-                    }
-                    else
-                    {
-                        <div class="place-contribute-form">
-                            <label for="place-tag-input">태그를 입력해 주세요</label>
-                            <InputText id="place-tag-input" @bind-Value="newPlaceTags" placeholder="예: 대형견 가능, 주차 가능" />
-                            <button type="button" @onclick="SavePlaceTagsAsync">태그 저장</button>
-                        </div>
-                    }
+                    <button type="button" class="place-contribute-button" @onclick="() => showTagEditor = true">+ 태그 추가</button>
+                }
+                else
+                {
+                    <div class="place-contribute-form">
+                        <label for="place-tag-input">태그를 입력해 주세요</label>
+                        <InputText id="place-tag-input" @bind-Value="newPlaceTags" placeholder="예: #고양이, #대형견 가능" />
+                        <button type="button" @onclick="SavePlaceTagsAsync">태그 저장</button>
+                    </div>
                 }
                 <h3>영업시간</h3>
                 @if (string.IsNullOrWhiteSpace(selectedPlace.BusinessHours))
@@ -218,8 +215,14 @@
                 }
                 <h3>사진</h3>
                 <div class="place-photo-contribution">
-                    <InputFile OnChange="HandlePlaceImageSelection" multiple accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp" />
-                    <button type="button" @onclick="UploadPlaceImagesAsync" disabled="@(placeImageFiles.Count == 0)">사진 추가</button>
+                    @if (selectedPlaceImages.Count > 0)
+                    {
+                        <div class="place-photo-thumbnails">
+                            @foreach (var photo in selectedPlaceImages) { <img src="@photo" alt="장소 사진" /> }
+                        </div>
+                    }
+                    <label class="place-photo-add" for="place-photo-input">사진 추가</label>
+                    <InputFile id="place-photo-input" style="display:none" OnChange="HandlePlaceImageSelection" multiple accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp" />
                     <small>로그인 없이 추가할 수 있어요. 이미지 최대 5장, 장당 5MB</small>
                     @if (!string.IsNullOrWhiteSpace(placeContributionMessage))
                     {
@@ -228,7 +231,6 @@
                 </div>
                 <h3>전화번호</h3>
                 <div class="place-contribute-form">
-                    <label for="place-phone-input">장소 전화번호</label>
                     <InputText id="place-phone-input" type="tel" @bind-Value="newPhone" maxlength="40" placeholder="예: 02-1234-5678" />
                     <button type="button" @onclick="SavePlacePhoneAsync" disabled="@(string.IsNullOrWhiteSpace(newPhone) || newPhone.Trim() == selectedPlace.Phone)">전화번호 저장</button>
                     @if (!string.IsNullOrWhiteSpace(phoneContributionMessage))
@@ -237,10 +239,8 @@
                     }
                 </div>
                 <h3>메모</h3><p>@(selectedPlace.Memo ?? selectedPlace.Description ?? "등록된 메모가 없습니다.")</p>
-                <h3>종합평점</h3>
-                <div class="place-rating-summary">@(selectedPlace.RatingCount > 0 ? $"★ {selectedPlace.AverageRating:F1} ({selectedPlace.RatingCount}명)" : "아직 평가가 없습니다.")</div>
+                <div class="place-rating-summary">@($"평점 {string.Join("", Enumerable.Range(0, 5).Select(score => score < Math.Round(selectedPlace.AverageRating) ? "★" : "☆"))} {selectedPlace.RatingCount}명")</div>
                 <div class="place-rate-control" aria-label="평점 평가하기">
-                    <span>평점 평가하기</span>
                     @if (isAuthenticated)
                     {
                         @for (var score = 1; score <= 5; score++)
@@ -249,7 +249,6 @@
                             <button type="button" aria-label="@($"{selectedScore}점 평가")" class="@(selectedScore <= currentUserRating ? "selected" : "")" @onclick="() => RateSelectedPlaceAsync(selectedScore)">★</button>
                         }
                     }
-                    else { <a href="/Account/Login?ReturnUrl=%2Fmap">로그인 후 평가</a> }
                 </div>
                 <div id="place-mini-map" class="place-mini-map" aria-label="장소 위치 지도"></div>
                 <p class="place-detail-address">@selectedPlace.Address</p>
@@ -336,7 +335,13 @@
             }
         </aside>
 <div class="map-canvas-wrap">
-    <div class="map-search" role="search">
+    <div class="map-search @(isMapSearchMinimized ? "minimized" : "")" role="search" id="map-search-panel">
+        <div class="map-search-window-controls" id="map-search-drag-handle">
+            <span>지도 검색</span>
+            <button type="button" aria-label="지도 검색 최소화" @onclick="() => isMapSearchMinimized = !isMapSearchMinimized">@(isMapSearchMinimized ? "□" : "−")</button>
+        </div>
+        @if (!isMapSearchMinimized)
+        {
         <div class="map-filter-toolbar">
             <button type="button"
                     class="filter-open-button"
@@ -360,42 +365,6 @@
                 <button type="button" class="search-clear" aria-label="검색어 지우기" @onclick="ClearSearch">×</button>
             }
         </div>
-        <div class="map-search-categories" aria-label="검색 카테고리">
-            <button type="button"
-                    class="@(selectedSearchCategories.Count == 0 ? "active" : "")"
-                    aria-pressed="@(selectedSearchCategories.Count == 0)"
-                    @onclick="ClearSearchCategories">전체</button>
-            @foreach (var category in Enum.GetValues<AnimalCategory>())
-            {
-                <button type="button"
-                        @key="category"
-                        class="@(selectedSearchCategories.Contains(category) ? "active" : "")"
-                        aria-pressed="@selectedSearchCategories.Contains(category)"
-                        @onclick="() => ToggleSearchCategory(category)">@GetSearchCategoryLabel(category)</button>
-            }
-        </div>
-        @foreach (var category in Enum.GetValues<AnimalCategory>()
-            .Where(category => selectedSearchCategories.Contains(category)
-                && GetSearchSubcategories(category).Length > 0))
-        {
-            <div class="map-search-subcategory-group" @key="category">
-                <span>@GetSearchCategoryLabel(category)</span>
-                <div class="map-search-subcategories" aria-label="@($"{GetSearchCategoryLabel(category)} 세부 카테고리")">
-                <button type="button"
-                        class="@(!HasSelectedSubcategories(category) ? "active" : "")"
-                        aria-pressed="@(!HasSelectedSubcategories(category))"
-                        @onclick="() => ClearSearchSubcategories(category)">전체</button>
-                @foreach (var subtype in GetSearchSubcategories(category))
-                {
-                    <button type="button"
-                            @key="subtype"
-                            class="@(IsSearchSubtypeSelected(category, subtype) ? "active" : "")"
-                            aria-pressed="@IsSearchSubtypeSelected(category, subtype)"
-                            @onclick="() => ToggleSearchSubtype(category, subtype)">@subtype</button>
-                }
-                </div>
-            </div>
-        }
 
         @if (searchResults.Count > 0)
         {
@@ -415,6 +384,7 @@
         else if (!string.IsNullOrWhiteSpace(searchKeyword) && searchKeyword.Trim().Length >= 2)
         {
             <div class="map-search-empty">검색된 장소가 없습니다.</div>
+        }
         }
     </div>
     <div class="map-district-legend" aria-label="안양시 구 경계 범례">

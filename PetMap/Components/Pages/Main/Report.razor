@@ -19,7 +19,7 @@
 {
     <ModalShell Title="@(editSuggestionMode ? "장소 정보 수정 제안" : "장소 제보")"
                 TitleId="place-report-title"
-                OnClose="ShowCheckCloseReportModal"
+                OnClose="RequestCloseReportModal"
                 CloseOnBackdrop="false">
         <ChildContent>
                 @if (editSuggestionMode)
@@ -133,17 +133,13 @@
 
                 </div>
 
-                <div class="mb-3">
-
-                    <label class="form-label">
-                        리뷰
-                    </label>
-
-                    <InputTextArea class="form-control"
-                                   rows="4"
-                                   @bind-Value="report.Review" />
-
-                </div>
+                @if (!editSuggestionMode)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">리뷰</label>
+                        <InputTextArea class="form-control" rows="4" @bind-Value="report.Review" />
+                    </div>
+                }
 
                 <div class="mb-3">
 
@@ -185,13 +181,9 @@
                         이미지
                     </label>
 
-                    <InputFile @key="imageInputKey"
-                               OnChange="HandleImages"
-                               multiple />
-
-                    <div class="mt-2">
-                        현재 @imageCount 장
-                    </div>
+                    <label class="report-image-add" for="report-image-input">사진 추가</label>
+                    <InputFile id="report-image-input" @key="imageInputKey"
+                               style="display:none" OnChange="HandleImages" multiple accept="image/*" />
                     @if (!string.IsNullOrWhiteSpace(errorMessage))
                     {
                         <div class="text-danger" role="alert">@errorMessage</div>
@@ -204,7 +196,7 @@
         <FooterContent>
                 <button class="btn btn-secondary"
                         type="button"
-                        @onclick="ShowCheckCloseReportModal">
+                        @onclick="RequestCloseReportModal">
                     취소
                 </button>
 
