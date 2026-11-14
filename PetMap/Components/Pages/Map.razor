@@ -335,40 +335,43 @@
             }
         </aside>
 <div class="map-canvas-wrap">
-    <div class="map-search @(isMapSearchMinimized ? "minimized" : "")" role="search" id="map-search-panel">
-        <div class="map-search-window-controls" id="map-search-drag-handle">
-            <span>지도 검색</span>
-            <button type="button" aria-label="지도 검색 최소화" @onclick="() => isMapSearchMinimized = !isMapSearchMinimized">@(isMapSearchMinimized ? "□" : "−")</button>
-        </div>
-        @if (!isMapSearchMinimized)
-        {
-        <div class="map-filter-toolbar">
-            <button type="button"
-                    class="filter-open-button"
-                    @onclick="OpenFilter">
-                <span aria-hidden="true">☷</span>
-                <span>지도 표시 필터</span>
-                <span class="filter-count">@GetFilterButtonText()</span>
-            </button>
-        </div>
-        <div class="map-search-input-row">
-            <span class="map-search-icon" aria-hidden="true">⌕</span>
-            <input type="search"
-                   placeholder="장소 이름이나 주소를 검색하세요"
-                   aria-label="장소 검색"
-                   autocomplete="off"
-                   @bind="searchKeyword"
-                   @bind:event="oninput"
-                   @bind:after="SearchPlacesAsync" />
-            @if (!string.IsNullOrWhiteSpace(searchKeyword))
+    <div class="map-search-shell @(isMapSearchMinimized ? "minimized" : "")" id="map-search-shell">
+        <div class="map-search @(isMapSearchMinimized ? "minimized" : "")" role="search" id="map-search-panel">
+            <div class="map-search-window-controls" id="map-search-drag-handle">
+                <span>지도 검색</span>
+                <button type="button" aria-label="지도 검색 최소화" @onclick="() => isMapSearchMinimized = !isMapSearchMinimized">@(isMapSearchMinimized ? "□" : "−")</button>
+            </div>
+            @if (!isMapSearchMinimized)
             {
-                <button type="button" class="search-clear" aria-label="검색어 지우기" @onclick="ClearSearch">×</button>
+                <div class="map-filter-toolbar">
+                    <button type="button"
+                            class="filter-open-button"
+                            @onclick="OpenFilter">
+                        <span aria-hidden="true">☷</span>
+                        <span>지도 표시 필터</span>
+                        <span class="filter-count">@GetFilterButtonText()</span>
+                    </button>
+                </div>
+                <div class="map-search-input-row">
+                    <span class="map-search-icon" aria-hidden="true">⌕</span>
+                    <input type="search"
+                           placeholder="장소 이름이나 주소를 검색하세요"
+                           aria-label="장소 검색"
+                           autocomplete="off"
+                           @bind="searchKeyword"
+                           @bind:event="oninput"
+                           @bind:after="SearchPlacesAsync" />
+                    @if (!string.IsNullOrWhiteSpace(searchKeyword))
+                    {
+                        <button type="button" class="search-clear" aria-label="검색어 지우기" @onclick="ClearSearch">×</button>
+                    }
+                </div>
             }
         </div>
 
-        @if (searchResults.Count > 0)
+        @if (!isMapSearchMinimized && searchResults.Count > 0)
         {
-            <div class="map-search-results">
+            <div class="map-search-results-panel" aria-label="검색 결과">
                 @foreach (var place in searchResults)
                 {
                     <button type="button" class="map-search-result" @key="place.PlaceUrl" @onclick="() => FocusPlace(place)">
@@ -381,10 +384,9 @@
                 }
             </div>
         }
-        else if (!string.IsNullOrWhiteSpace(searchKeyword) && searchKeyword.Trim().Length >= 2)
+        else if (!isMapSearchMinimized && !string.IsNullOrWhiteSpace(searchKeyword) && searchKeyword.Trim().Length >= 2)
         {
-            <div class="map-search-empty">검색된 장소가 없습니다.</div>
-        }
+            <div class="map-search-empty-panel">검색된 장소가 없습니다.</div>
         }
     </div>
     <div class="map-district-legend" aria-label="안양시 구 경계 범례">

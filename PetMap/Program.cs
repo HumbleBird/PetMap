@@ -13,6 +13,9 @@ using PetMap.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (string.IsNullOrWhiteSpace(builder.Configuration["Kakao:JavaScriptKey"]))
+    throw new InvalidOperationException("Kakao JavaScript key is required. Configure Kakao:JavaScriptKey through .NET User Secrets locally or KAKAO_JAVASCRIPT_KEY in the deployment environment.");
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

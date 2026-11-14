@@ -8,12 +8,16 @@ using PetMap.Data.Utiles;
 using PetMap.Components.Pages.Main;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
 
 namespace PetMap.Components.Pages
 {
     public partial class Map : IAsyncDisposable
     {
-        private const string kakaoAppKey = "957bb72f70345ef9382bb74c5cb8cfbe";
+        [Inject]
+        private IConfiguration Configuration { get; set; } = default!;
+
+        private string KakaoJavaScriptKey => Configuration["Kakao:JavaScriptKey"] ?? string.Empty;
         private string currentUrl = "/map";
         private const long MaxCommentImageSize = 5 * 1024 * 1024;
         private int? selectedPlaceId;
@@ -116,7 +120,7 @@ namespace PetMap.Components.Pages
                     places,
                     new
                     {
-                        appKey = kakaoAppKey,
+                        appKey = KakaoJavaScriptKey,
                         mapId = "map",
                         level = 6
                     },
@@ -136,7 +140,7 @@ namespace PetMap.Components.Pages
             if (selectedPlace is not null && lastMiniMapPlaceId != selectedPlace.Id && _mapModule is not null)
             {
                 lastMiniMapPlaceId = selectedPlace.Id;
-                await _mapModule.InvokeVoidAsync("showPlaceMiniMap", selectedPlace.Latitude, selectedPlace.Longitude, "place-mini-map", kakaoAppKey);
+                await _mapModule.InvokeVoidAsync("showPlaceMiniMap", selectedPlace.Latitude, selectedPlace.Longitude, "place-mini-map", KakaoJavaScriptKey);
             }
         }
 

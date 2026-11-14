@@ -321,25 +321,45 @@ let searchDragBound = false;
 export function enableMapSearchDragging() {
     if (searchDragBound) return;
     searchDragBound = true;
+    const shell = document.getElementById('map-search-shell');
+    const panel = document.getElementById('map-search-panel');
+    if (shell && panel) {
+        let expandedWidth = panel.getBoundingClientRect().width;
+        const resizeObserver = new ResizeObserver(() => {
+            if (panel.classList.contains('minimized')) return;
+            expandedWidth = panel.getBoundingClientRect().width;
+            shell.style.width = `${expandedWidth}px`;
+        });
+        resizeObserver.observe(panel);
+
+        const stateObserver = new MutationObserver(() => {
+            if (panel.classList.contains('minimized')) {
+                shell.style.width = '220px';
+            } else {
+                shell.style.width = `${expandedWidth}px`;
+            }
+        });
+        stateObserver.observe(panel, { attributes: true, attributeFilter: ['class'] });
+    }
     document.addEventListener('pointerdown', event => {
         const handle = event.target.closest?.('#map-search-drag-handle');
-        const panel = document.getElementById('map-search-panel');
-        if (!handle || !panel || event.target.closest('button')) return;
-        const parent = panel.parentElement;
-        const panelRect = panel.getBoundingClientRect();
+        const searchShell = document.getElementById('map-search-shell');
+        if (!handle || !searchShell || event.target.closest('button')) return;
+        const parent = searchShell.parentElement;
+        const panelRect = searchShell.getBoundingClientRect();
         const parentRect = parent.getBoundingClientRect();
         const startX = event.clientX;
         const startY = event.clientY;
         const initialLeft = panelRect.left - parentRect.left;
         const initialTop = panelRect.top - parentRect.top;
-        panel.style.transform = 'none';
-        panel.style.left = `${initialLeft}px`;
-        panel.style.top = `${initialTop}px`;
+        searchShell.style.transform = 'none';
+        searchShell.style.left = `${initialLeft}px`;
+        searchShell.style.top = `${initialTop}px`;
         handle.setPointerCapture?.(event.pointerId);
         const move = moveEvent => {
             if (moveEvent.pointerId !== event.pointerId) return;
-            panel.style.left = `${Math.max(0, initialLeft + moveEvent.clientX - startX)}px`;
-            panel.style.top = `${Math.max(0, initialTop + moveEvent.clientY - startY)}px`;
+            searchShell.style.left = `${Math.max(0, initialLeft + moveEvent.clientX - startX)}px`;
+            searchShell.style.top = `${Math.max(0, initialTop + moveEvent.clientY - startY)}px`;
         };
         const stop = stopEvent => {
             if (stopEvent.pointerId !== event.pointerId) return;

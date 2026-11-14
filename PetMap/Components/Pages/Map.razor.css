@@ -295,7 +295,7 @@
     font-size: 10px;
 }
 
-.map-search {
+.map-search-shell {
     position: absolute;
     z-index: 5;
     top: 18px;
@@ -303,7 +303,22 @@
     transform: translateX(-50%);
     display: flex;
     flex-direction: column;
+    gap: 8px;
     width: min(620px, calc(100% - 32px));
+    max-width: calc(100% - 24px);
+    pointer-events: none;
+}
+
+.map-search-shell.minimized {
+    width: 220px;
+}
+
+.map-search {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
     padding: 8px 14px 10px;
     border: 1px solid rgba(38, 60, 102, .12);
     border-radius: 16px;
@@ -313,14 +328,15 @@
     overflow: auto;
     min-width: 280px;
     min-height: 64px;
-    max-width: calc(100% - 24px);
+    max-width: calc(100vw - 24px);
     max-height: calc(100% - 24px);
+    pointer-events: auto;
 }
 
 .map-search-window-controls { display:flex; align-items:center; justify-content:space-between; min-height:28px; color:#667085; font-size:12px; font-weight:700; }
 .map-search-window-controls button { border:0; border-radius:6px; background:#f0f2f5; color:#263c66; width:28px; height:26px; font-size:18px; cursor:pointer; }
 #map-search-drag-handle { cursor:move; touch-action:none; }
-.map-search.minimized { width:220px; resize:none; }
+.map-search.minimized { width:100%; min-width:220px; resize:none; }
 .map-search.minimized .map-search-window-controls { min-height:38px; }
 .place-photo-contribution input[type=file], #report-image-input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
 .place-photo-add, .report-image-add { display:inline-flex; align-items:center; justify-content:center; padding:9px 16px; border-radius:9px; background:#263c66; color:white; cursor:pointer; }
@@ -443,16 +459,19 @@
         background: #f5f7fa;
     }
 
-.map-search-results, .map-search-empty {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    right: 0;
+.map-search-results-panel, .map-search-empty-panel {
+    width: 100%;
+    max-height: min(45vh, 420px);
     overflow: hidden;
     border: 1px solid #e8ebf0;
     border-radius: 14px;
     background: #fff;
     box-shadow: 0 12px 30px rgba(24, 39, 75, .16);
+    pointer-events: auto;
+}
+
+.map-search-results-panel {
+    overflow-y: auto;
 }
 
 .map-search-result {
@@ -503,7 +522,7 @@
         white-space: nowrap;
     }
 
-.map-search-empty {
+.map-search-empty-panel {
     padding: 16px;
     color: #7b8492;
     font-size: 13px;
@@ -516,7 +535,7 @@
         min-height: 0;
     }
 
-    .map-search {
+    .map-search-shell {
         top: 12px;
     }
 
